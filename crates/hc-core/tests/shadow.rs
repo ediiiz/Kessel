@@ -31,7 +31,7 @@ fn optimistic_shadow_then_notify_reconciles() {
     // A DIVERGENT authoritative NOTIFY wins — the appliance is always right.
     shadow.reconcile(&ValueUpdate {
         uid: 10,
-        value: json!(9),
+        value: Some(json!(9)),
         description: hc_proto::DescriptionUpdate::default(),
     });
     let entry = shadow.get(10).expect("still present after reconcile");
@@ -50,7 +50,7 @@ fn optimistic_shadow_then_notify_reconciles() {
     shadow.set_optimistic(11, json!(true));
     shadow.reconcile(&ValueUpdate {
         uid: 11,
-        value: json!(true),
+        value: Some(json!(true)),
         description: hc_proto::DescriptionUpdate::default(),
     });
     let entry = shadow.get(11).expect("present");
@@ -59,5 +59,31 @@ fn optimistic_shadow_then_notify_reconciles() {
         entry.origin(),
         Origin::Confirmed,
         "a matching NOTIFY clears the optimistic flag"
+    );
+}
+
+#[test]
+fn a_description_only_update_keeps_the_held_value() {
+    let mut shadow = Shadow::new();
+    shadow.reconcile(&ValueUpdate {
+        uid: 10,
+        value: Some(json!(true)),
+        description: hc_proto::DescriptionUpdate::default(),
+    });
+
+    shadow.reconcile(&ValueUpdate {
+        uid: 10,
+        value: None,
+        description: hc_proto::DescriptionUpdate {
+            available: Some(false),
+            ..hc_proto::DescriptionUpdate::default()
+        },
+    });
+
+    let entry = shadow.get(10).expect("the value is still held");
+    assert_eq!(
+        entry.value(),
+        &json!(true),
+        "a revision without a value is not a null"
     );
 }

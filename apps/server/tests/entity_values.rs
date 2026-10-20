@@ -90,7 +90,7 @@ fn an_entity_descriptor_carries_its_current_value() {
     state.shadows().install(SLUG, Arc::clone(&shadow));
     shadow.lock().seed(&[ValueUpdate {
         uid: u64::from(uid),
-        value: json!(0),
+        value: Some(json!(0)),
         description: hc_proto::DescriptionUpdate::default(),
     }]);
 
@@ -117,7 +117,7 @@ fn an_enum_value_is_rendered_as_its_declared_label() {
     state.shadows().install(SLUG, Arc::clone(&shadow));
     shadow.lock().seed(&[ValueUpdate {
         uid: u64::from(uid),
-        value: json!(ordinal),
+        value: Some(json!(ordinal)),
         description: hc_proto::DescriptionUpdate::default(),
     }]);
 
@@ -263,7 +263,7 @@ fn a_description_change_rebuilds_the_entry_that_both_surfaces_read() {
                 SLUG,
                 &[ValueUpdate {
                     uid: u64::from(uid),
-                    value: json!(1),
+                    value: Some(json!(1)),
                     description: hc_proto::DescriptionUpdate::default(),
                 }],
             )
@@ -281,7 +281,7 @@ fn a_description_change_rebuilds_the_entry_that_both_surfaces_read() {
                 SLUG,
                 &[ValueUpdate {
                     uid: u64::from(uid),
-                    value: json!(1),
+                    value: Some(json!(1)),
                     description: hc_proto::DescriptionUpdate {
                         min: Some(-24),
                         max: Some(-16),

@@ -77,7 +77,8 @@ async fn every_role_reaches_the_transport_through_the_choke_point() {
         assert_eq!(
             transport.count(),
             1,
-            "{role:?}: the command must reach the transport exactly once. Zero would mean an Ok              verdict that emitted nothing; more than one would mean a duplicated send path"
+            "{role:?}: the command must reach the transport exactly once. Zero would mean an Ok \
+             verdict that emitted nothing; more than one would mean a duplicated send path"
         );
     }
 }

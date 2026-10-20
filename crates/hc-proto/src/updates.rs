@@ -46,8 +46,9 @@ impl DescriptionUpdate {
 pub struct ValueUpdate {
     /// The feature id.
     pub uid: u64,
-    /// The new value, whatever JSON type the appliance sent.
-    pub value: Value,
+    /// The new value, whatever JSON type the appliance sent, or [`None`] when the item carried no
+    /// `value` and only revised the description. A reported `null` is `Some(Value::Null)`.
+    pub value: Option<Value>,
     /// What this item revised about the feature's description. Empty for a plain value update.
     pub description: DescriptionUpdate,
 }
@@ -65,7 +66,7 @@ pub fn apply_updates(known: &BTreeSet<u64>, items: &[Value]) -> Vec<ValueUpdate>
         if known.contains(&uid) {
             applied.push(ValueUpdate {
                 uid,
-                value: item.get("value").cloned().unwrap_or(Value::Null),
+                value: item.get("value").cloned(),
                 description: description_of(item),
             });
         } else {

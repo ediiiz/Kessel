@@ -2182,7 +2182,7 @@ async fn a_value_is_published_to_its_feature_state_topic() {
             model,
             &hc_proto::ValueUpdate {
                 uid: u64::from(numeric.uid),
-                value: Value::from(42),
+                value: Some(Value::from(42)),
                 description: hc_proto::DescriptionUpdate::default(),
             },
         )
@@ -2217,6 +2217,49 @@ async fn a_value_is_published_to_its_feature_state_topic() {
 }
 
 #[tokio::test]
+async fn a_description_only_update_leaves_the_state_topic_alone() {
+    // Changing one setting makes the appliance revise the description of related ones (`available`,
+    // `access`) without a value. Publishing that as `None` blanked those entities in HA.
+    let profile = fixture_profile("dishwasher-tls.zip");
+    let model = profile.model();
+    let mapping = DeviceMapping::build(&device_id(), model, &Excludes::none());
+    let bridge = DeviceBridge::new(BASE, device_id());
+    let entry = mapping
+        .entries()
+        .iter()
+        .find(|entry| entry.state_topic.is_some())
+        .expect("the dishwasher has a readable feature");
+
+    let mut broker = FakeBroker::new();
+    bridge
+        .publish_value(
+            &mut broker,
+            &mapping,
+            model,
+            &hc_proto::ValueUpdate {
+                uid: u64::from(entry.uid),
+                value: None,
+                description: hc_proto::DescriptionUpdate {
+                    available: Some(false),
+                    ..hc_proto::DescriptionUpdate::default()
+                },
+            },
+        )
+        .await
+        .expect("publishing nothing cannot fail");
+
+    assert!(
+        broker.publishes.is_empty(),
+        "no value means no state publish; recorded topics: {:?}",
+        broker
+            .publishes
+            .iter()
+            .map(|p| &p.topic)
+            .collect::<Vec<_>>()
+    );
+}
+
+#[tokio::test]
 async fn an_enum_value_is_published_as_its_declared_label() {
     // HA's `select` renders `options`, which are member names, so the state topic carries the
     // label rather than the wire ordinal.
@@ -2234,7 +2277,7 @@ async fn an_enum_value_is_published_as_its_declared_label() {
             model,
             &hc_proto::ValueUpdate {
                 uid: u64::from(uid),
-                value: Value::from(ordinal),
+                value: Some(Value::from(ordinal)),
                 description: hc_proto::DescriptionUpdate::default(),
             },
         )
@@ -2277,7 +2320,7 @@ async fn a_null_value_is_published_as_home_assistants_none_sentinel() {
             model,
             &hc_proto::ValueUpdate {
                 uid: u64::from(uid),
-                value: Value::Null,
+                value: Some(Value::Null),
                 description: hc_proto::DescriptionUpdate::default(),
             },
         )
@@ -2328,7 +2371,7 @@ async fn a_state_outside_the_announced_options_publishes_none_not_the_raw_value(
             model,
             &hc_proto::ValueUpdate {
                 uid: u64::from(entry.uid),
-                value: Value::from(0),
+                value: Some(Value::from(0)),
                 description: hc_proto::DescriptionUpdate::default(),
             },
         )
@@ -2378,7 +2421,7 @@ async fn a_value_for_an_unmapped_uid_is_not_published() {
             model,
             &hc_proto::ValueUpdate {
                 uid: unmapped,
-                value: Value::from(7),
+                value: Some(Value::from(7)),
                 description: hc_proto::DescriptionUpdate::default(),
             },
         )
@@ -2496,7 +2539,7 @@ async fn a_program_pointer_publishes_the_programs_name_not_its_uid() {
             model,
             &hc_proto::ValueUpdate {
                 uid: u64::from(pointer.uid),
-                value: Value::from(program.uid),
+                value: Some(Value::from(program.uid)),
                 description: hc_proto::DescriptionUpdate::default(),
             },
         )
@@ -2539,7 +2582,7 @@ async fn an_unresolved_program_pointer_publishes_none_rather_than_a_bare_number(
                 model,
                 &hc_proto::ValueUpdate {
                     uid: u64::from(pointer.uid),
-                    value: Value::from(unresolved),
+                    value: Some(Value::from(unresolved)),
                     description: hc_proto::DescriptionUpdate::default(),
                 },
             )
