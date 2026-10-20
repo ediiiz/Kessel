@@ -28,6 +28,7 @@ export { default as CookingPot } from '@lucide/svelte/icons/cooking-pot';
 export { default as DoorOpen } from '@lucide/svelte/icons/door-open';
 export { default as Droplets } from '@lucide/svelte/icons/droplets';
 export { default as Eraser } from '@lucide/svelte/icons/eraser';
+export { default as ExternalLink } from '@lucide/svelte/icons/external-link';
 export { default as Eye } from '@lucide/svelte/icons/eye';
 export { default as EyeOff } from '@lucide/svelte/icons/eye-off';
 export { default as FileArchive } from '@lucide/svelte/icons/file-archive';

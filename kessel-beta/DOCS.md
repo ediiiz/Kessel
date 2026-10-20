@@ -15,10 +15,11 @@ appliances again; give them the same names and the entity ids stay the same.
 2. Start Kessel and open its web UI from the sidebar.
 3. Choose **Add appliance**, drop the appliance's profile ZIP and enter its IP address.
 
-The profile ZIP comes from
-[homeconnect-profile-downloader](https://github.com/bruestel/homeconnect-profile-downloader). It
-holds the appliance's keys; Kessel stores them in its own data folder and never logs them. Give each
-appliance a fixed IP address in your router.
+To get the profile ZIP, download
+[Home Connect Profile Downloader](https://github.com/bruestel/homeconnect-profile-downloader/releases/latest)
+on a computer, sign in with your Home Connect app account, and it saves one ZIP per appliance. The
+ZIP holds the appliance's keys; Kessel stores them in its own data folder and never logs them. Give
+each appliance a fixed IP address in your router.
 
 Each appliance then appears as a device under **Settings → Devices & services → MQTT**.
 

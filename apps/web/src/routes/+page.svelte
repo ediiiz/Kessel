@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { resolve } from '$app/paths';
+  import { link } from '$lib/links';
   import { Activity, Plus, RefreshCw, Settings, TriangleAlert } from '$lib/icons';
   import type { DeviceSummary } from '$lib/api-types';
   import { createApiClient } from '$lib/api';
@@ -166,11 +166,11 @@
         {@render bubble(Plus, 255)}
         Add appliance
       </button>
-      <a href={resolve(ROUTES.inspector)} class={SHORTCUT}>
+      <a href={link(ROUTES.inspector)} class={SHORTCUT}>
         {@render bubble(Activity, 175)}
         Frames
       </a>
-      <a href={resolve(ROUTES.config)} class={SHORTCUT}>
+      <a href={link(ROUTES.config)} class={SHORTCUT}>
         {@render bubble(Settings, 300)}
         Settings
       </a>

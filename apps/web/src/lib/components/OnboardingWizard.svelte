@@ -20,8 +20,17 @@
    * address form below the result is that correction, and it is offered on success too: it is a
    * normal input, not the error path.
    */
-  import { Ban, CircleCheck, FileArchive, TriangleAlert } from '$lib/icons';
+  import {
+    Ban,
+    ChevronDown,
+    CircleCheck,
+    CircleHelp,
+    ExternalLink,
+    FileArchive,
+    TriangleAlert,
+  } from '$lib/icons';
   import type { CommitRequest, OnboardingResult, ProfilePreview } from '$lib/api-types';
+  import * as Collapsible from '$lib/components/ui/collapsible';
   import * as Dialog from '$lib/components/ui/dialog';
   import { cn } from '$lib/utils.js';
 
@@ -192,6 +201,9 @@
     }
   }
 
+  const DOWNLOADER_RELEASES =
+    'https://github.com/bruestel/homeconnect-profile-downloader/releases/latest';
+
   const FIELD =
     'border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-9 w-full rounded-lg border px-2.5 text-sm transition-colors focus-visible:ring-[3px] focus-visible:outline-none';
   const BUTTON =
@@ -237,6 +249,44 @@
         class="absolute inset-0 cursor-pointer opacity-0"
       />
     </label>
+
+    <Collapsible.Root class="flex flex-col gap-2" data-testid="zip-help">
+      <Collapsible.Trigger
+        class="text-muted-foreground hover:text-foreground group flex w-fit items-center gap-1.5 text-sm"
+      >
+        <CircleHelp class="size-4" aria-hidden="true" />
+        Where do I get this file?
+        <ChevronDown
+          class="size-4 transition-transform group-data-[state=open]:rotate-180"
+          aria-hidden="true"
+        />
+      </Collapsible.Trigger>
+      <Collapsible.Content>
+        <ol
+          class="text-muted-foreground flex list-decimal flex-col gap-1.5 rounded-lg border p-3 pl-8 text-sm"
+        >
+          <li>
+            On a computer, download the
+            <a
+              href={DOWNLOADER_RELEASES}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-foreground inline-flex items-center gap-1 font-medium underline underline-offset-2"
+              >Home Connect Profile Downloader<ExternalLink class="size-3" aria-hidden="true" /></a
+            >
+            for Windows, macOS or Linux. It is unsigned, so your system may warn before opening it.
+          </li>
+          <li>Sign in with the account you use in the Home Connect app.</li>
+          <li>
+            It saves one ZIP per appliance on that account. Choose the one for this appliance above.
+          </li>
+        </ol>
+        <p class="text-muted-foreground mt-2 text-xs">
+          The ZIP holds the appliance's keys. Kessel stores them only in its own data folder and
+          needs the file once.
+        </p>
+      </Collapsible.Content>
+    </Collapsible.Root>
 
     <div>
       <button

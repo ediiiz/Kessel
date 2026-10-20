@@ -40,9 +40,7 @@ import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
  *      `/api/hassio_ingress/` and drops the token). On loopback the header is absent and the path
  *      already ends in `/`, so no redirect arises.
  *
- *      This redirect is on the hot path: under ingress every in-app link is a full page load (see
- *      `ROUTES` in `src/lib/index.ts`). The Location must carry no fragment, so the browser
- *      re-applies the original `#/route`.
+ *      The Location must carry no fragment, so the browser re-applies the original `#/route`.
  *
  *   3. Disable response buffering on the SSE route, or the frame inspector receives nothing until
  *      the connection closes.

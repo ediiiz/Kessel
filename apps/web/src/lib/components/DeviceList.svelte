@@ -6,7 +6,7 @@
    * Every card is a link and nothing else; writes live on the device page. Nothing here renders a
    * secret identifier: `DeviceSummary` carries only the role, slug, brand and model.
    */
-  import { resolve } from '$app/paths';
+  import { link } from '$lib/links';
   import { Flame, Lock, Plus } from '$lib/icons';
   import type { DeviceSummary } from '$lib/api-types';
   import { ROUTES } from '$lib/index.js';
@@ -68,7 +68,7 @@
       >
         <a
           data-testid="device-link"
-          href={resolve(ROUTES.device, { slug: device.slug })}
+          href={link(ROUTES.device, { slug: device.slug })}
           class="group press glass focus-visible:ring-ring/50 flex h-full flex-col overflow-hidden rounded-3xl border hover:-translate-y-0.5 focus-visible:ring-[3px] focus-visible:outline-none"
         >
           <div class="flex flex-col gap-0.5 px-4 pt-4 pb-3">
