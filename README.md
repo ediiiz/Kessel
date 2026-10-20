@@ -35,9 +35,14 @@ entities.
 
 ## Onboarding an appliance
 
-Kessel needs each appliance's **profile ZIP** once — the export produced by
-[homeconnect-profile-downloader](https://github.com/bruestel/homeconnect-profile-downloader) (the
-openHAB/Home Connect Direct format). It contains the appliance's keys and its feature description.
+Kessel needs each appliance's **profile ZIP** once. It contains the appliance's keys and its feature
+description. To get it:
+
+1. On a computer, download
+   [Home Connect Profile Downloader](https://github.com/bruestel/homeconnect-profile-downloader/releases/latest)
+   for Windows, macOS or Linux. It is unsigned, so your system may warn before opening it.
+2. Sign in with the account you use in the Home Connect app.
+3. It saves one ZIP per appliance on that account.
 
 In the web UI choose **Add appliance**, drop the ZIP, check the detected model, and enter the
 appliance's IP address. Kessel tests the connection before saving it. Give appliances a fixed
@@ -123,7 +128,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the layout of the code and the conv
 
 The protocol knowledge builds on [hcpy](https://github.com/hcpy2-0/hcpy),
 [homeconnect_websocket](https://github.com/chris-mc1/homeconnect_websocket) and
-[go-homeconnect2mqtt](https://github.com/bruestel/homeconnect-profile-downloader). Home Connect is a
+[go-homeconnect2mqtt](https://github.com/SukramJ/go-homeconnect2mqtt). Home Connect is a
 trademark of BSH Hausgeräte GmbH; this project is not affiliated with it.
 
 ## License

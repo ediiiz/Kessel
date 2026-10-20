@@ -136,3 +136,22 @@ describe('the_dialog_enforces_exactly_two_client_side_rules', () => {
     view.destroy();
   });
 });
+
+describe('the_zip_help_points_at_the_downloader', () => {
+  it('opens on request and links the downloader in a new tab', () => {
+    const view = wizard();
+    const help = view.query('zip-help');
+    const trigger = help?.querySelector('button');
+    expect(trigger?.getAttribute('aria-expanded')).toBe('false');
+
+    click(trigger ?? null);
+
+    expect(trigger?.getAttribute('aria-expanded')).toBe('true');
+    const link = help?.querySelector('a');
+    expect(link?.getAttribute('href')).toBe(
+      'https://github.com/bruestel/homeconnect-profile-downloader/releases/latest',
+    );
+    expect(link?.getAttribute('target')).toBe('_blank');
+    view.destroy();
+  });
+});
