@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/ediiiz/Kessel/compare/v0.3.0...v0.3.1) (2026-10-20)
+
+
+### Bug Fixes
+
+* **web:** clean up the device page on phones ([7ff8306](https://github.com/ediiiz/Kessel/commit/7ff83060a0e3771fa8a88cc423bbbded731d896f))
+
 ## [0.3.0](https://github.com/ediiiz/Kessel/compare/v0.2.1...v0.3.0) (2026-10-20)
 
 ### Bug Fixes
