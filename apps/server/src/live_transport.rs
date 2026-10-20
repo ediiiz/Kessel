@@ -609,7 +609,7 @@ struct DecodingSink<'a> {
 /// which is what makes it safe inside `UpdateSink::accept`.
 ///
 /// The rendered value goes on the stream deliberately; appliance identifiers never do. The device
-/// field is the slug and the uid is a number (`tests/l10_sse_sweep.rs`).
+/// field is the slug and the uid is a number (`tests/sse_leak_sweep.rs`).
 struct ValueEvents<'a> {
     slug: &'a str,
     model: &'a hc_profile::EntityModel,

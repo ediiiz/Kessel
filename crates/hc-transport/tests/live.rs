@@ -51,16 +51,16 @@ async fn live_aes_hob_handshake_no_403() {
                 State::Connected,
                 "the hob handshake reaches CONNECTED"
             );
-            // The regression asserted directly: no 403 on /ci/services.
+            // No 403 on /ci/services.
             assert!(
                 !outcome.saw_403,
-                "REGRESSION: the hob answered /ci/services with code 403"
+                "the hob answered /ci/services with code 403"
             );
         }
-        // A fatal `code` on /ci/services surfaces as a Proto error carrying the code; a 403 there is
-        // the regression. Fail loudly and print the observed error either way.
+        // A fatal `code` on /ci/services surfaces as a Proto error carrying the code, a 403 among
+        // them. Fail loudly and print the observed error either way.
         Err(TransportError::Proto(error)) => {
-            panic!("hob handshake failed (this is the live check for the 403 regression): {error}");
+            panic!("hob handshake failed: {error}");
         }
         Err(other) => panic!("hob handshake transport failure: {other}"),
     }

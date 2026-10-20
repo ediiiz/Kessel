@@ -966,9 +966,9 @@ Requirements:
 
 ### The leak sweeps have no needle for this class
 
-Kessel's leak-sweep tests — `crates/hc-transport/tests/l10_frame_events.rs`,
+Kessel's leak-sweep tests — `crates/hc-transport/tests/frame_event_leak_sweep.rs`,
 `crates/hc-transport/tests/debug_redaction.rs`, `crates/hc-transport/tests/tls_psk_redaction.rs`,
-`apps/server/tests/l10_sse_sweep.rs` — build their needles from the fixture corpus's synthetic
+`apps/server/tests/sse_leak_sweep.rs` — build their needles from the fixture corpus's synthetic
 **appliance** identifiers only. No sweep carries a needle for a password, an authorization code, or
 an access or refresh token, so **a leak of this class would pass every existing test.** Before any
 code that handles these credentials lands, extend the sweeps with a synthetic password and a

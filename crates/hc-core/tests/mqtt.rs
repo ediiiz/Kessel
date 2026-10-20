@@ -2445,7 +2445,7 @@ async fn a_value_for_an_unmapped_uid_is_not_published() {
 /// key such as `…SerialNumber` is the proxy. Proven for the four scrubbed fixtures; a future
 /// firmware exposing such a feature fails here.
 #[test]
-fn no_surfaced_feature_key_names_an_l10_identifier() {
+fn no_surfaced_feature_key_names_an_appliance_identifier() {
     // Identifier names (psk, iv, serial, mac, shipSki, deviceID), matched as case-insensitive
     // substrings against every surfaced feature key.
     const FORBIDDEN: [&str; 8] = [

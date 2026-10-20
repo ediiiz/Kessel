@@ -83,8 +83,8 @@ const RETAINED_QOS: rumqttc::QoS = rumqttc::QoS::AtMostOnce;
 
 /// The `QoS` an un-retained publish goes out at.
 ///
-/// Nothing publishes un-retained today. Kept distinct from [`RETAINED_QOS`] so a future un-retained
-/// publish does not inherit a `QoS` chosen for retained topics.
+/// The discovery-sync marker and the migration markers go out un-retained. Kept distinct from
+/// [`RETAINED_QOS`] so they do not inherit a `QoS` chosen for retained topics.
 const UNRETAINED_QOS: rumqttc::QoS = rumqttc::QoS::AtLeastOnce;
 
 #[async_trait]

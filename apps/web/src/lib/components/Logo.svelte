@@ -11,9 +11,10 @@
    * `currentColor`, so the mark follows the theme.
    *
    * Other copies of the mark: `static/favicon.svg` carries the same three paths, and the add-on store
-   * needs PNGs, `addon/icon.png` (128 px, the mark on its tile) and `addon/logo.png` (460 × 150,
-   * mark plus wordmark in Instrument Sans). The PNGs were drawn from these paths on a `<canvas>` and
-   * saved with `toDataURL`. Change the geometry here and update all three.
+   * needs PNGs, `kessel/icon.png` (128 px, the mark on its tile) and `kessel/logo.png` (460 × 150,
+   * mark plus wordmark in Instrument Sans), with identical copies under `kessel-beta/`. Regenerate
+   * them by drawing these paths on a `<canvas>` and saving with `toDataURL`. Change the geometry here
+   * and update every copy.
    *
    * `bg-primary` / `text-primary-foreground` keep the tile's contrast in both themes. `aria-hidden`
    * because the wordmark beside it already says "Kessel".
