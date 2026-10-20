@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/ediiiz/Kessel/compare/v0.3.0...v0.3.1) (2026-10-20)
+
+### Bug Fixes
+
+* The device page on phones: the hero no longer shows a seam across its bottom, and the programme and appliance rows keep their margin instead of starting at the screen edge.
+* A delayed start of zero shows "Delayed start: Off" instead of "Starts in 0 min".
+
 ## [0.3.0](https://github.com/ediiiz/Kessel/compare/v0.2.1...v0.3.0) (2026-10-20)
 
 ### Bug Fixes
