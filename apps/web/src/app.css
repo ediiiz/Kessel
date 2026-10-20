@@ -1,0 +1,417 @@
+/**
+ * The design system: Tailwind CSS v4 + shadcn-svelte tokens.
+ *
+ * A cool palette: frost in light mode, deep ink-navy in dark mode, one electric-blue accent for
+ * action. Each appliance role brings its own hue (`--hue`, set by `ApplianceArt` and the device
+ * page) that tints its scene and its glow; everything else stays neutral so that hue reads.
+ *
+ * Materials: `glass` is a grained translucent pane with a light edge, `grain` is the fixed ambient
+ * wash behind the app, `scene` is a role's artwork. Fonts are bundled because the add-on may have
+ * no internet access.
+ */
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn-svelte/tailwind.css';
+@import '@fontsource-variable/instrument-sans';
+@import '@fontsource-variable/jetbrains-mono';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.875rem;
+
+  --background: oklch(0.975 0.006 250);
+  --foreground: oklch(0.2 0.03 258);
+  --card: oklch(0.995 0.003 250);
+  --card-foreground: oklch(0.2 0.03 258);
+  --popover: oklch(0.995 0.003 250);
+  --popover-foreground: oklch(0.2 0.03 258);
+
+  --primary: oklch(0.58 0.2 258);
+  --primary-foreground: oklch(0.99 0.005 250);
+  --secondary: oklch(0.945 0.01 252);
+  --secondary-foreground: oklch(0.26 0.03 258);
+  --muted: oklch(0.94 0.01 252);
+  --muted-foreground: oklch(0.5 0.025 256);
+  --accent: oklch(0.93 0.02 255);
+  --accent-foreground: oklch(0.26 0.04 258);
+
+  --destructive: oklch(0.58 0.21 25);
+
+  --border: oklch(0.89 0.012 252);
+  --input: oklch(0.89 0.012 252);
+  --ring: oklch(0.62 0.16 258);
+
+  --chart-1: oklch(0.6 0.18 258);
+  --chart-2: oklch(0.68 0.13 175);
+  --chart-3: oklch(0.7 0.15 75);
+  --chart-4: oklch(0.62 0.18 300);
+  --chart-5: oklch(0.6 0.2 25);
+
+  --sidebar: oklch(0.96 0.008 252);
+  --sidebar-foreground: oklch(0.22 0.03 258);
+  --sidebar-primary: oklch(0.58 0.2 258);
+  --sidebar-primary-foreground: oklch(0.99 0.005 250);
+  --sidebar-accent: oklch(0.92 0.02 255);
+  --sidebar-accent-foreground: oklch(0.24 0.04 258);
+  --sidebar-border: oklch(0.89 0.012 252);
+  --sidebar-ring: oklch(0.62 0.16 258);
+
+  --success: oklch(0.62 0.15 158);
+  --warning: oklch(0.72 0.16 65);
+
+  /* Glass: a translucent fill, a hairline edge and a brighter top highlight. */
+  --surface: oklch(1 0 0 / 0.66);
+  --surface-strong: oklch(1 0 0 / 0.7);
+  --surface-border: oklch(0.4 0.03 258 / 0.12);
+  --surface-highlight: oklch(1 0 0 / 0.9);
+  --shadow-soft: 0 1px 2px oklch(0.3 0.04 258 / 0.06), 0 12px 32px -12px oklch(0.3 0.06 258 / 0.18);
+
+  /* The ambient wash that the glass blurs. */
+  --wash-1: oklch(0.86 0.09 255 / 0.55);
+  --wash-2: oklch(0.88 0.08 200 / 0.4);
+  --wash-3: oklch(0.9 0.07 310 / 0.3);
+
+  --selected: oklch(1 0 0);
+  --selected-foreground: oklch(0.22 0.03 258);
+
+  --motion-fast: 140ms;
+  --motion-base: 260ms;
+  --motion-ease: cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+.dark {
+  --background: oklch(0.16 0.025 262);
+  --foreground: oklch(0.96 0.008 250);
+  --card: oklch(0.21 0.03 262);
+  --card-foreground: oklch(0.96 0.008 250);
+  --popover: oklch(0.23 0.032 262);
+  --popover-foreground: oklch(0.96 0.008 250);
+
+  --primary: oklch(0.7 0.17 255);
+  --primary-foreground: oklch(0.16 0.03 262);
+  --secondary: oklch(0.26 0.03 262);
+  --secondary-foreground: oklch(0.96 0.008 250);
+  --muted: oklch(0.26 0.03 262);
+  --muted-foreground: oklch(0.72 0.025 255);
+  --accent: oklch(0.3 0.04 260);
+  --accent-foreground: oklch(0.97 0.008 250);
+
+  --destructive: oklch(0.7 0.19 25);
+
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 14%);
+  --ring: oklch(0.7 0.15 255);
+
+  --chart-1: oklch(0.7 0.17 255);
+  --chart-2: oklch(0.75 0.13 175);
+  --chart-3: oklch(0.8 0.14 75);
+  --chart-4: oklch(0.72 0.16 300);
+  --chart-5: oklch(0.7 0.19 25);
+
+  --sidebar: oklch(0.18 0.028 262);
+  --sidebar-foreground: oklch(0.95 0.008 250);
+  --sidebar-primary: oklch(0.7 0.17 255);
+  --sidebar-primary-foreground: oklch(0.16 0.03 262);
+  --sidebar-accent: oklch(0.27 0.035 260);
+  --sidebar-accent-foreground: oklch(0.97 0.008 250);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.7 0.15 255);
+
+  --success: oklch(0.76 0.15 158);
+  --warning: oklch(0.82 0.14 70);
+
+  --surface: oklch(0.26 0.035 262 / 0.5);
+  --surface-strong: oklch(0.27 0.035 262 / 0.78);
+  --surface-border: oklch(1 0 0 / 0.08);
+  --surface-highlight: oklch(1 0 0 / 0.14);
+  --shadow-soft: 0 1px 2px oklch(0 0 0 / 0.3), 0 16px 40px -16px oklch(0 0 0 / 0.6);
+
+  --wash-1: oklch(0.45 0.16 262 / 0.45);
+  --wash-2: oklch(0.45 0.12 210 / 0.3);
+  --wash-3: oklch(0.42 0.14 305 / 0.25);
+
+  --selected: oklch(0.36 0.04 260);
+  --selected-foreground: oklch(0.98 0.005 250);
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
+  --color-surface-border: var(--surface-border);
+  --color-selected: var(--selected);
+  --color-selected-foreground: var(--selected-foreground);
+
+  --font-sans:
+    'Instrument Sans Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    Helvetica, Arial, sans-serif;
+  --font-mono:
+    'JetBrains Mono Variable', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+/* shadcn-svelte's shared layer (the CLI's `dist/tailwind.css`). */
+@theme inline {
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--bits-accordion-content-height, var(--accordion-panel-height, auto));
+    }
+  }
+
+  @keyframes accordion-up {
+    from {
+      height: var(--bits-accordion-content-height, var(--accordion-panel-height, auto));
+    }
+    to {
+      height: 0;
+    }
+  }
+}
+
+/* Overlaps its children in one cell, so a skeleton and its content can crossfade in place. */
+@utility stack {
+  display: grid;
+
+  & > * {
+    grid-area: 1 / 1;
+    min-width: 0;
+  }
+}
+
+/* Grained translucent pane with a light top edge. Falls back to an opaque card without blur. */
+@utility glass {
+  position: relative;
+  isolation: isolate;
+  background-color: var(--surface);
+  border-color: var(--surface-border);
+  box-shadow:
+    inset 0 1px 0 var(--surface-highlight),
+    var(--shadow-soft);
+  backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0.18;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)'/%3E%3C/svg%3E");
+  }
+
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    background-color: var(--card);
+  }
+}
+
+/* The fixed ambient wash behind the whole app, with film grain. Mounted once. */
+@utility grain {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(48rem 34rem at 8% -6%, var(--wash-1), transparent 70%),
+    radial-gradient(40rem 30rem at 100% 10%, var(--wash-2), transparent 72%),
+    radial-gradient(44rem 30rem at 50% 110%, var(--wash-3), transparent 70%);
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.35;
+    mix-blend-mode: soft-light;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)'/%3E%3C/svg%3E");
+  }
+}
+
+/*
+ * A role's artwork: stacked linear and radial light in the role's hue (`--hue`), streaks, and grain.
+ * Pure CSS, so it costs no request and renders the same offline.
+ */
+@utility scene {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background-color: oklch(0.32 0.09 var(--hue, 255));
+  background-image:
+    radial-gradient(120% 90% at 85% 15%, oklch(0.78 0.14 var(--hue, 255) / 0.85), transparent 55%),
+    radial-gradient(
+      90% 80% at 0% 100%,
+      oklch(0.45 0.16 calc(var(--hue, 255) + 40) / 0.9),
+      transparent 60%
+    ),
+    linear-gradient(
+      160deg,
+      oklch(0.4 0.12 var(--hue, 255)),
+      oklch(0.2 0.06 calc(var(--hue, 255) + 20))
+    );
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -20%;
+    z-index: 0;
+    pointer-events: none;
+    background-image: repeating-linear-gradient(
+      115deg,
+      oklch(1 0 0 / 0.07) 0 1px,
+      transparent 1px 14px
+    );
+    mask-image: linear-gradient(200deg, black, transparent 70%);
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.4;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)'/%3E%3C/svg%3E");
+  }
+}
+
+/* Tap feedback: a small scale on press, transform only. */
+@utility press {
+  transition:
+    transform var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-fast) ease,
+    color var(--motion-fast) ease,
+    border-color var(--motion-fast) ease,
+    box-shadow var(--motion-fast) ease;
+
+  &:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  /**
+   * The reduced-motion backstop.
+   *
+   * `$lib/motion.ts` handles every Svelte transition, but it cannot reach the movement that is pure
+   * CSS: `tw-animate-css`'s `animate-in`/`animate-out` on every dialog, dropdown, popover and toast,
+   * the `animate-spin` on a reload button, and every `transition-colors` in the app.
+   * Those are most of the moving parts.
+   *
+   * `0.01ms` rather than `0`: a zero-duration transition never fires `transitionend`, and a component
+   * waiting on that event to unmount would hang. `!important` because it must beat utility classes.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  html {
+    /* The shell is a fixed viewport with independently scrolling panes (see `+layout.svelte`), so
+       the document itself must not also scroll. */
+    @apply bg-background text-foreground;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  /* Numbers in this UI are almost always in a column that is scanned vertically — uids, feature
+     values, frame counts. Tabular figures stop them from shifting column to column. */
+  table,
+  [data-slot='table'] {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/**
+ * The frame log's rows, and the entrance the newest batch of them plays.
+ *
+ * Both live here because they interact:
+ *
+ *   - `content-visibility: auto` lets the log keep a 1000-row scrollback for the cost of the visible
+ *     dozen; the browser skips layout and paint for off-screen rows, and `contain-intrinsic-size`
+ *     reserves a plausible height so the scrollbar stays accurate.
+ *   - A skipped row does not run animations. A row is appended below the fold and only then scrolled
+ *     to, so an entrance on a skipped row never plays, or replays later when the operator scrolls
+ *     past it.
+ *
+ * So the freshest rows opt out of the skipping while they carry the entrance (they are about to be
+ * on screen anyway), and `.frame-row-in` is declared after `.frame-row` so it wins without
+ * `!important`.
+ *
+ * A short rise and fade, matched to the log's smooth scroll so new rows glide in rather than jump.
+ * `FrameInspector.svelte` keeps the class for a few redraws so the animation finishes; reduced motion
+ * is handled in `@layer base`.
+ */
+@keyframes frame-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@layer components {
+  .frame-row {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 3.5rem;
+  }
+
+  .frame-row-in {
+    content-visibility: visible;
+    animation: frame-row-in 280ms var(--motion-ease) both;
+  }
+}

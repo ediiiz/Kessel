@@ -1,0 +1,8 @@
+# Python bytecode from running the capture harness, the scrubber or their tests.
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Dependencies installed with `pip3 install --target` where `python3 -m venv` fails
+# (`ensurepip` missing). See capture.md §1.
+.pylibs/

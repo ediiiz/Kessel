@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Kessel</title>
+    <!--
+      The tab icon, from `static/favicon.svg`. The `./` matters: under the Home Assistant ingress the
+      document lives at `/api/hassio_ingress/<token>/`, and a root-absolute `/favicon.svg` would 404.
+      `%sveltekit.assets%` is not used because for a hash-routed fallback page it stays rooted at `/`
+      (see `scripts/relativize-index.js`). One theme-aware SVG and no `.ico`: only current browsers
+      reach this page.
+    -->
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <!--
+      Applies the stored theme before the first paint. `src/lib/theme.svelte.ts` runs after
+      hydration, which is too late: the page would paint light and then flip to dark. The storage
+      key must match `THEME_STORAGE_KEY` in that module.
+
+      `localStorage` throws when site data is blocked, which is realistic inside the Home Assistant
+      ingress iframe, hence the try/catch.
+    -->
+    <script>
+      try {
+        const choice = localStorage.getItem('kessel.theme');
+        const dark =
+          choice === 'dark' ||
+          ((choice === null || choice === 'system') &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.classList.toggle('dark', dark);
+      } catch {
+        // No stored preference is reachable; the stylesheet's light defaults stand.
+      }
+    </script>
+    %sveltekit.head%
+  </head>
+  <body data-sveltekit-preload-data="hover" data-sveltekit-preload-code="viewport">
+    <div style="display: contents">%sveltekit.body%</div>
+  </body>
+</html>

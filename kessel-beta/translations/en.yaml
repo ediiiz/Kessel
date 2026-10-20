@@ -1,0 +1,11 @@
+configuration:
+  log_level:
+    name: Log level
+    description: >-
+      How much the add-on writes to its log. Use `debug` when diagnosing a connection problem.
+      Keys and credentials are never logged at any level.
+  mqtt_autodiscovery:
+    name: Use Home Assistant's MQTT broker
+    description: >-
+      Publish appliances to the broker Home Assistant already uses (for example the Mosquitto
+      add-on), with no further setup. A broker entered on Kessel's Settings page takes precedence.

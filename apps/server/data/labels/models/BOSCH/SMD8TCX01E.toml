@@ -1,0 +1,34 @@
+# BOSCH SMD8TCX01E — the model layer.
+#
+# Only what this model needs *beyond* prefixes/Dishcare.Dishwasher.toml and prefixes/BSH.Common.toml.
+# An entry here wins over both.
+
+# TimeLight is Bosch's floor-projected time beam, and "Time light" — what the derived spelling gives —
+# does not tell an operator what it is. The description is how the feature is marketed; it has not
+# been observed on the appliance.
+[features."Dishcare.Dishwasher.Setting.TimeLight"]
+label = "Time beam"
+description = "Projects the programme's remaining time onto the floor."
+
+# The derived spelling of the last two segments is "001.Functionality", which is what the UI shows
+# today. The number is a slot index, and there are usually three slots.
+[features."BSH.Common.Setting.Favorite.001.Functionality"]
+label = "Favourite 1 — what the button does"
+
+[features."BSH.Common.Setting.Favorite.001.Functionality".values]
+Off = "Nothing"
+Program = "Start a programme"
+
+[features."BSH.Common.Setting.Favorite.002.Functionality"]
+label = "Favourite 2 — what the button does"
+
+[features."BSH.Common.Setting.Favorite.002.Functionality".values]
+Off = "Nothing"
+Program = "Start a programme"
+
+[features."BSH.Common.Setting.Favorite.003.Functionality"]
+label = "Favourite 3 — what the button does"
+
+[features."BSH.Common.Setting.Favorite.003.Functionality".values]
+Off = "Nothing"
+Program = "Start a programme"

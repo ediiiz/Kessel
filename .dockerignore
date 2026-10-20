@@ -1,0 +1,60 @@
+# Build-context exclusions for the Dockerfile.
+#
+# The Dockerfile copies an explicit list of paths, so most entries here are defence in depth.
+# The build-artefact entries are load-bearing: `COPY apps/web apps/web` copies the whole
+# directory, and only this file keeps a local `node_modules/`, `build/` or `.svelte-kit/` out.
+
+# --- secrets and appliance identity ---
+# Docker ignore patterns are anchored at the context root and do not recurse like .gitignore,
+# so each entry has an explicit `**/` twin.
+#
+# Appliance profile ZIPs and their keys.
+secrets/
+**/secrets/
+secrets/captures/
+# Local fleet notes: LAN addresses and appliance MACs.
+devices.txt
+**/devices.txt
+# The API token the server writes at first run, relative to its working directory by default.
+kessel.token
+**/kessel.token
+
+# --- build artefacts ---
+target/
+**/target/
+node_modules/
+**/node_modules/
+apps/web/build/
+apps/web/.svelte-kit/
+apps/docs/build/
+dist/
+scripts/.pylibs/
+**/__pycache__/
+*.pyc
+*.profraw
+coverage/
+
+# --- repository files no build stage reads ---
+.git/
+.gitignore
+.github/
+.dockerignore
+Dockerfile
+worktrees/
+# Local third-party checkouts and scratch work.
+reference/
+spike/
+# Documentation and project metadata.
+docs/
+fixtures/
+LICENSE
+CHANGELOG.md
+AGENTS.md
+CLAUDE.md
+repository.yaml
+release-please-config.json
+.DS_Store
+
+# `README.md` is deliberately not excluded: `Cargo.toml` sets `readme = "README.md"`, so the build
+# stage copies it.
+

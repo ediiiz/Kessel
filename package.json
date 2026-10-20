@@ -1,0 +1,27 @@
+{
+  "name": "kessel",
+  "private": true,
+  "version": "0.1.0",
+  "license": "MIT",
+  "workspaces": [
+    "apps/web",
+    "e2e",
+    "packages/api-types"
+  ],
+  "scripts": {
+    "lint": "bun run --filter '*' lint",
+    "check": "bun run --filter '*' check",
+    "build": "bun run --filter web build",
+    "dev": "turbo run dev dev:server dev:types",
+    "dev:server": "cargo run -p server --features tls-psk",
+    "dev:types": "bun scripts/watch-types.ts",
+    "e2e": "bun run --filter e2e test"
+  },
+  "engines": {
+    "bun": ">=1.3.0"
+  },
+  "packageManager": "bun@1.3.5",
+  "devDependencies": {
+    "turbo": "2.10.8"
+  }
+}

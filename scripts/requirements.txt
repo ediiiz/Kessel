@@ -1,0 +1,6 @@
+# Dependencies for the capture harness and scrubber (scripts/capture.md).
+# Not part of the Rust workspace and not installed by `just ci`; `just test-py` installs them.
+
+pycryptodome        # AES-CBC; the same library hcpy uses (reference/hcpy/requirements.txt)
+websocket-client    # hcpy's WebSocket transport
+pytest              # scripts/tests/

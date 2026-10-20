@@ -1,0 +1,11 @@
+# Complexity thresholds, enforced in CI. A hit is a reason to refactor, not to add `#[allow]`.
+
+cognitive-complexity-threshold     = 15   # default 25 — deliberately tighter
+too-many-lines-threshold           = 80   # a fn over ~80 lines gets split
+too-many-arguments-threshold       = 5    # >5 args → pass a struct
+type-complexity-threshold          = 200
+excessive-nesting-threshold        = 4    # >4 levels of blocks → extract
+enum-variant-size-threshold        = 200  # box the fat variant
+max-struct-bools                   = 3
+max-fn-params-bools                = 3
+avoid-breaking-exported-api        = false  # pre-1.0: allow API churn toward simpler shapes

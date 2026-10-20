@@ -1,0 +1,364 @@
+# Cooking.Oven — the oven keys.
+#
+# **This appliance can be started from Home Assistant.** A misleading name here is a misleading name
+# on a control that heats.
+#
+# ## Two things shape this file
+#
+# 1. **Everything lives under `Cavity.001`.** The derived name is `humanize(last_segment(key))`, so
+#    the cavity segment vanishes and the leaf is what shows. That is usually fine — this oven has one
+#    cavity — but it means `Status.Cavity.001.DoorState` and `Status.Server.Cavity.001.DoorState`
+#    both render as "Door state", and likewise for `OperationState`, `SteamBoost` and
+#    `SteamAssistLevel`.
+#
+# 2. **`Status.Server.*` is not for people.** Those 22 keys are the appliance's telemetry to BSH's
+#    cloud — a baking-sensor oxygen reading, a forecast data package, a Pt500 probe. They are named
+#    here only so they are distinguishable from their user-facing twins, and they stay disabled and
+#    Diagnostic.
+#
+# This oven declares 288 addressable entities. Ten or so are promoted below; the rest arrive
+# disabled, which is not hidden — the config is published and one click turns it on.
+
+# --- what you came for ----------------------------------------------------------------------
+#
+# `PRIMARY_LEAVES` already enables OperationState, DoorState, RemainingProgramTime, ProgramProgress,
+# StartInRelative and the two programme slots. It does not know about temperature, which on an oven
+# is the number.
+
+[features."Cooking.Oven.Status.Cavity.001.CurrentTemperature"]
+label = "Oven temperature"
+enabled_by_default = true
+entity_category = "primary"
+icon = "mdi:thermometer"
+
+[features."Cooking.Oven.Status.Cavity.001.SetpointTemperature"]
+label = "Target temperature"
+enabled_by_default = true
+entity_category = "primary"
+icon = "mdi:thermometer"
+
+[features."Cooking.Oven.Status.Cavity.001.CurrentMeatprobeTemperature"]
+label = "Meat probe temperature"
+enabled_by_default = true
+entity_category = "primary"
+icon = "mdi:thermometer-probe"
+
+[features."Cooking.Oven.Status.Cavity.001.MeatprobePlugged"]
+label = "Meat probe plugged in"
+enabled_by_default = true
+device_class = "plug"
+
+[features."Cooking.Oven.Status.Cavity.001.ProgramName"]
+label = "Programme name"
+enabled_by_default = true
+
+[features."Cooking.Oven.Status.Cavity.001.ElapsedProgramTime"]
+label = "Elapsed programme time"
+enabled_by_default = true
+icon = "mdi:timer-outline"
+
+[features."Cooking.Oven.Setting.Light.Cavity.001.Power"]
+label = "Oven light"
+enabled_by_default = true
+entity_category = "primary"
+icon = "mdi:lightbulb"
+
+[features."Cooking.Oven.Status.Cavity.001.WaterTankEmpty"]
+label = "Water tank empty"
+enabled_by_default = true
+entity_category = "primary"
+device_class = "problem"
+
+[features."Cooking.Oven.Status.Cavity.001.WaterTankUnplugged"]
+label = "Water tank removed"
+enabled_by_default = true
+device_class = "problem"
+
+# --- the events worth automating on -----------------------------------------------------------
+#
+# 63 events on this appliance. These are the ones that mean "come to the kitchen".
+
+[features."Cooking.Oven.Event.Cavity.001.ProgramFinished"]
+label = "Programme finished"
+enabled_by_default = true
+entity_category = "primary"
+icon = "mdi:check-circle-outline"
+
+[features."Cooking.Oven.Event.Cavity.001.ProgramAborted"]
+label = "Programme aborted"
+enabled_by_default = true
+entity_category = "primary"
+icon = "mdi:cancel"
+
+[features."Cooking.Oven.Event.Cavity.001.RegularPreheatFinished"]
+label = "Preheated"
+enabled_by_default = true
+entity_category = "primary"
+
+[features."Cooking.Oven.Event.Cavity.001.FastPreheatFinished"]
+label = "Fast preheat finished"
+enabled_by_default = true
+
+[features."Cooking.Oven.Event.Cavity.001.MeatprobeTemperatureReached"]
+label = "Meat probe temperature reached"
+enabled_by_default = true
+entity_category = "primary"
+icon = "mdi:thermometer-probe"
+
+[features."Cooking.Oven.Event.Cavity.001.InsertFoodNow"]
+label = "Insert food now"
+enabled_by_default = true
+
+[features."Cooking.Oven.Event.Cavity.001.TurnFoodNow"]
+label = "Turn food now"
+enabled_by_default = true
+
+[features."Cooking.Oven.Event.Cavity.001.AlarmClockElapsed"]
+label = "Timer elapsed"
+enabled_by_default = true
+icon = "mdi:alarm"
+
+[features."Cooking.Oven.Event.Cavity.001.FillWaterContainer"]
+label = "Fill the water container"
+enabled_by_default = true
+
+[features."Cooking.Oven.Event.Cavity.001.EmptyWaterContainer"]
+label = "Empty the water container"
+enabled_by_default = true
+
+[features."Cooking.Oven.Event.Cavity.001.DescalingRequest"]
+label = "Descaling needed"
+enabled_by_default = true
+
+[features."Cooking.Oven.Event.Cavity.001.CloseDoor"]
+label = "Close the door"
+
+[features."Cooking.Oven.Event.Cavity.001.OpenDoor"]
+label = "Open the door"
+
+[features."Cooking.Oven.Event.Cavity.001.CavityTemperatureTooHigh"]
+label = "Oven too hot"
+enabled_by_default = true
+entity_category = "diagnostic"
+device_class = "problem"
+
+# --- settings -------------------------------------------------------------------------------
+
+[features."Cooking.Oven.Setting.CavityIllumination"]
+label = "Oven light mode"
+
+[features."Cooking.Oven.Setting.ConfigureChildLock"]
+label = "Child lock"
+icon = "mdi:lock"
+
+[features."Cooking.Oven.Setting.CoolingFanRunOnTime"]
+label = "Cooling fan run-on time"
+
+[features."Cooking.Oven.Setting.DisplayBrightness"]
+label = "Display brightness"
+
+[features."Cooking.Oven.Setting.DisplayBrandLogo"]
+label = "Show the brand logo"
+
+[features."Cooking.Oven.Setting.SoundVolume"]
+label = "Sound volume"
+icon = "mdi:volume-high"
+
+[features."Cooking.Oven.Setting.SignalDuration"]
+label = "Signal duration"
+
+[features."Cooking.Oven.Setting.ButtonTones"]
+label = "Button tones"
+icon = "mdi:volume-high"
+
+[features."Cooking.Oven.Setting.ClockDisplay"]
+label = "Clock display"
+
+[features."Cooking.Oven.Setting.StartupMenu"]
+label = "Start-up menu"
+
+[features."Cooking.Oven.Setting.WaterHardness"]
+label = "Water hardness"
+icon = "mdi:water-percent"
+
+[features."Cooking.Oven.Setting.Cavity.001.AlarmClock"]
+label = "Timer"
+icon = "mdi:alarm"
+
+# --- options --------------------------------------------------------------------------------
+
+[features."Cooking.Oven.Option.SetpointTemperature"]
+label = "Temperature"
+icon = "mdi:thermometer"
+
+[features."Cooking.Oven.Option.MeatProbeTemperatureV2"]
+label = "Meat probe target temperature"
+icon = "mdi:thermometer"
+
+[features."Cooking.Oven.Option.FastPreHeat"]
+label = "Fast preheat"
+
+[features."Cooking.Oven.Option.SteamAssistLevel"]
+label = "Steam assist level"
+
+[features."Cooking.Oven.Option.PyrolysisLevel"]
+label = "Pyrolysis level"
+
+[features."Cooking.Oven.Option.AirExchange"]
+label = "Air exchange"
+
+# --- the appliance's telemetry, not the operator's ----------------------------------------------
+#
+# `Status.Server.*` is what the oven reports to BSH's cloud. Named only so it is distinguishable
+# from its user-facing twin — `Server.Cavity.001.DoorState` and `Cavity.001.DoorState` both derive
+# to "Door state" — and left disabled and Diagnostic.
+
+[features."Cooking.Oven.Status.Server.Cavity.001.DoorState"]
+label = "Door state (reported to the cloud)"
+entity_category = "diagnostic"
+icon = "mdi:door"
+
+[features."Cooking.Oven.Status.Server.Cavity.001.OperationState"]
+label = "Operation state (reported to the cloud)"
+entity_category = "diagnostic"
+icon = "mdi:state-machine"
+
+[features."Cooking.Oven.Status.Server.Cavity.001.CurrentCavityTemperatureCelsius"]
+label = "Oven temperature (reported to the cloud)"
+entity_category = "diagnostic"
+icon = "mdi:thermometer"
+
+[features."Cooking.Oven.Status.Server.Cavity.001.CurrentMeatProbeTemperatureCelsius"]
+label = "Meat probe temperature (reported to the cloud)"
+entity_category = "diagnostic"
+icon = "mdi:thermometer"
+
+[features."Cooking.Oven.Status.Server.Cavity.001.SetpointTemperatureCelsius"]
+label = "Target temperature (reported to the cloud)"
+entity_category = "diagnostic"
+icon = "mdi:thermometer"
+
+[features."Cooking.Oven.Status.Server.Cavity.001.SteamBoost"]
+label = "Steam boost (reported to the cloud)"
+entity_category = "diagnostic"
+
+[features."Cooking.Oven.Status.Server.Cavity.001.SteamAssistLevel"]
+label = "Steam assist level (reported to the cloud)"
+entity_category = "diagnostic"
+
+# --- the two programmes the oven declares twice --------------------------------------------------
+#
+# The oven declares 298 programmes, of which 42 leaf names appear twice. `presentation`'s uniqueness
+# rule leaves every colliding pair publishing its raw key, so nothing is ambiguous — but a raw key in
+# a dropdown is a name nobody wants to read, and these two pairs are the ones an operator meets in
+# ordinary use rather than somewhere in the dish catalogue.
+#
+# The qualifier is the key's own distinguishing segment and nothing more. `SubsequentMode` is what
+# the oven calls the mode it runs *after* a programme finishes; `Cleaning` is the pyrolysis group.
+# What either one does beyond that is not documented anywhere we can cite, so it is not claimed here.
+#
+# The remaining 40 collisions are all `Dish.Automatic.*` against `Dish.Recommendation.*.MeatProbe.*`
+# — the same dish by a different method. Telling those apart in a name needs someone who has cooked
+# on the appliance, so they are left on their raw keys deliberately.
+
+[programs."Cooking.Oven.Program.HeatingMode.KeepWarm"]
+label = "Keep warm"
+
+[programs."Cooking.Oven.Program.SubsequentMode.KeepWarm"]
+label = "Keep warm (subsequent mode)"
+
+[programs."Cooking.Oven.Program.Cleaning.Drying"]
+label = "Drying (cleaning)"
+
+[programs."Cooking.Oven.Program.SubsequentMode.Drying"]
+label = "Drying (subsequent mode)"
+
+[features."Cooking.Oven.Event.Cavity.001.ApplianceModuleError"]
+device_class = "problem"
+
+[features."Cooking.Oven.Event.Cavity.001.BakingSensorProgramAborted"]
+icon = "mdi:cancel"
+
+[features."Cooking.Oven.Event.Cavity.001.CavityTemperatureTooHighInfo"]
+device_class = "problem"
+
+[features."Cooking.Oven.Event.Cavity.001.ErrorBakingSensor"]
+device_class = "problem"
+
+[features."Cooking.Oven.Event.Cavity.001.ErrorCodeE0502"]
+device_class = "problem"
+
+[features."Cooking.Oven.Event.Cavity.001.ErrorDoorLatch"]
+device_class = "problem"
+
+[features."Cooking.Oven.Event.Cavity.001.ErrorPermanentButtonPressing"]
+device_class = "problem"
+
+[features."Cooking.Oven.Event.Cavity.001.ErrorSteamSystem"]
+device_class = "problem"
+
+[features."Cooking.Oven.Event.Cavity.001.MaxMeatprobeTemperatureExceeded"]
+icon = "mdi:thermometer-probe"
+
+[features."Cooking.Oven.Event.Cavity.001.MeatprobeContinueCooking"]
+icon = "mdi:thermometer-probe"
+
+[features."Cooking.Oven.Event.Cavity.001.MeatprobeIncompatibleOperation"]
+icon = "mdi:thermometer-probe"
+
+[features."Cooking.Oven.Event.Cavity.001.MeatprobeNecessary"]
+icon = "mdi:thermometer-probe"
+
+[features."Cooking.Oven.Event.Cavity.001.TurnFoodNowMeatprobe"]
+icon = "mdi:thermometer-probe"
+
+[features."Cooking.Oven.Event.Cavity.001.UnplugMeatprobe"]
+icon = "mdi:thermometer-probe"
+
+[features."Cooking.Oven.Setting.Light.Cavity.001.CavitySelector"]
+icon = "mdi:lightbulb"
+
+[features."Cooking.Oven.Status.Cavity.001.DoorState"]
+icon = "mdi:door"
+
+[features."Cooking.Oven.Status.Cavity.001.FrontPanelOpen"]
+device_class = "opening"
+
+[features."Cooking.Oven.Status.Cavity.001.MeatProbeTemperatureV2"]
+icon = "mdi:thermometer"
+
+[features."Cooking.Oven.Status.Cavity.001.OperationState"]
+icon = "mdi:state-machine"
+
+[features."Cooking.Oven.Status.Cavity.001.ProgramProgress"]
+icon = "mdi:progress-clock"
+
+[features."Cooking.Oven.Status.Cavity.001.RemainingProgramTime"]
+icon = "mdi:timer-sand"
+
+[features."Cooking.Oven.Status.Cavity.001.RemainingProgramTime.AutoCounting"]
+icon = "mdi:timer-sand"
+
+[features."Cooking.Oven.Status.Cavity.001.RemainingProgramTimeEstimatedMax"]
+icon = "mdi:timer-sand"
+
+[features."Cooking.Oven.Status.Cavity.001.RemainingProgramTimeEstimatedMin"]
+icon = "mdi:timer-sand"
+
+[features."Cooking.Oven.Status.Cavity.001.RemainingProgramTimeEstimationState"]
+icon = "mdi:timer-sand"
+
+[features."Cooking.Oven.Status.Cavity.001.StartInRelative"]
+icon = "mdi:clock-start"
+
+[features."Cooking.Oven.Status.MeatprobePlugged"]
+device_class = "plug"
+
+[features."Cooking.Oven.Status.Server.Cavity.001.HeatingModeFanSpeed"]
+icon = "mdi:fast-forward"
+
+[features."Cooking.Oven.Status.Server.Cavity.001.MeatProbeSetpointTemperatureCelsius"]
+icon = "mdi:thermometer"
+
+[features."Cooking.Oven.Status.Server.Cavity.001.Pt500Temperature"]
+icon = "mdi:thermometer"

@@ -1,0 +1,222 @@
+# Dishcare.Dishwasher — keys shared by every dishwasher, whatever the brand.
+
+[features."Dishcare.Dishwasher.Setting.EcoAsDefault"]
+label = "Default programme"
+description = "Which programme is pre-selected when the appliance is switched on."
+icon = "mdi:leaf"
+
+# The member names are the two choices, and neither spells itself: "LastProgram" and "EcoAsDefault"
+# read as settings rather than as answers to "which programme?".
+[features."Dishcare.Dishwasher.Setting.EcoAsDefault".values]
+LastProgram = "Whatever ran last"
+EcoAsDefault = "Always Eco"
+
+[features."Dishcare.Dishwasher.Setting.InteriorLightMode"]
+label = "Interior light"
+icon = "mdi:lightbulb"
+
+[features."Dishcare.Dishwasher.Setting.InteriorLightMode".values]
+ApplianceOnDoorOpen = "Only when switched on"
+AlwaysOnDoorOpen = "Whenever the door opens"
+
+[features."Dishcare.Dishwasher.Setting.SilenceOnDemandDefaultTime"]
+label = "Silence on demand — default duration"
+icon = "mdi:volume-off"
+
+[features."Dishcare.Dishwasher.Option.IntensivZone"]
+label = "Intensive zone"
+
+[features."Dishcare.Dishwasher.Option.HygienePlus"]
+label = "Hygiene Plus"
+icon = "mdi:bacteria-outline"
+
+[features."Dishcare.Dishwasher.Option.VarioSpeedPlus"]
+label = "VarioSpeed Plus"
+icon = "mdi:fast-forward"
+
+[features."Dishcare.Dishwasher.Option.HalfLoad"]
+label = "Half load"
+
+[features."Dishcare.Dishwasher.Option.ExtraDry"]
+label = "Extra dry"
+icon = "mdi:hair-dryer"
+
+[programs."Dishcare.Dishwasher.Program.Auto1"]
+label = "Auto 35–45 °C"
+
+[programs."Dishcare.Dishwasher.Program.Auto2"]
+label = "Auto 45–65 °C"
+
+[programs."Dishcare.Dishwasher.Program.Auto3"]
+label = "Auto 65–75 °C"
+
+[programs."Dishcare.Dishwasher.Program.Eco50"]
+label = "Eco 50 °C"
+
+[programs."Dishcare.Dishwasher.Program.Quick45"]
+label = "Quick 45 °C"
+
+[programs."Dishcare.Dishwasher.Program.Intensiv70"]
+label = "Intensive 70 °C"
+
+[programs."Dishcare.Dishwasher.Program.NightWash"]
+label = "Night wash"
+
+[programs."Dishcare.Dishwasher.Program.Glas40"]
+label = "Glass 40 °C"
+
+[programs."Dishcare.Dishwasher.Program.PreRinse"]
+label = "Pre-rinse"
+
+[programs."Dishcare.Dishwasher.Program.MachineCare"]
+label = "Machine care"
+
+# --- what an operator watches -----------------------------------------------------------------
+#
+# `PRIMARY_LEAVES` enables OperationState, DoorState, RemainingProgramTime, ProgramProgress and the
+# two programme slots. It does not know about the phase, the consumables, or the reminders — which
+# are the rest of what someone asks a dishwasher.
+
+[features."Dishcare.Dishwasher.Status.ProgramPhase"]
+label = "Programme phase"
+enabled_by_default = true
+entity_category = "primary"
+icon = "mdi:progress-check"
+
+[features."Dishcare.Dishwasher.Status.SilenceOnDemandRemainingTime"]
+label = "Silence remaining"
+icon = "mdi:volume-off"
+
+[features."Dishcare.Dishwasher.Status.EcoDryActive"]
+label = "Eco dry active"
+icon = "mdi:leaf"
+
+[features."Dishcare.Dishwasher.Event.RinseAidNearlyEmpty"]
+label = "Rinse aid nearly empty"
+enabled_by_default = true
+entity_category = "primary"
+device_class = "problem"
+
+[features."Dishcare.Dishwasher.Event.RinseAidLack"]
+label = "Rinse aid empty"
+enabled_by_default = true
+entity_category = "primary"
+device_class = "problem"
+
+[features."Dishcare.Dishwasher.Event.SaltNearlyEmpty"]
+label = "Salt nearly empty"
+enabled_by_default = true
+entity_category = "primary"
+device_class = "problem"
+
+[features."Dishcare.Dishwasher.Event.SaltLack"]
+label = "Salt empty"
+enabled_by_default = true
+entity_category = "primary"
+device_class = "problem"
+
+[features."Dishcare.Dishwasher.Event.CheckFilterSystem"]
+label = "Check the filter"
+enabled_by_default = true
+device_class = "problem"
+
+[features."Dishcare.Dishwasher.Event.MachineCareReminder"]
+label = "Machine care due"
+enabled_by_default = true
+icon = "mdi:dishwasher-alert"
+
+[features."Dishcare.Dishwasher.Event.MachineCareAndFilterCleaningReminder"]
+label = "Machine care and filter cleaning due"
+enabled_by_default = true
+icon = "mdi:air-filter"
+
+[features."Dishcare.Dishwasher.Event.DrainPumpBlocked"]
+label = "Drain pump blocked"
+enabled_by_default = true
+entity_category = "diagnostic"
+device_class = "problem"
+
+[features."Dishcare.Dishwasher.Event.DrainingNotPossible"]
+label = "Cannot drain"
+enabled_by_default = true
+entity_category = "diagnostic"
+device_class = "problem"
+
+[features."Dishcare.Dishwasher.Event.InternalError"]
+label = "Internal error"
+enabled_by_default = true
+entity_category = "diagnostic"
+device_class = "problem"
+
+[features."Dishcare.Dishwasher.Event.WaterheaterCalcified"]
+label = "Water heater limescaled"
+entity_category = "diagnostic"
+device_class = "problem"
+
+# --- settings ---------------------------------------------------------------------------------
+
+[features."Dishcare.Dishwasher.Setting.RinseAid"]
+label = "Rinse aid dosage"
+icon = "mdi:cup-water"
+
+[features."Dishcare.Dishwasher.Setting.WaterHardness"]
+label = "Water hardness"
+icon = "mdi:water-percent"
+
+[features."Dishcare.Dishwasher.Setting.InteriorLight"]
+label = "Interior light"
+enabled_by_default = true
+entity_category = "primary"
+icon = "mdi:lightbulb"
+
+[features."Dishcare.Dishwasher.Setting.ExtraDry"]
+label = "Extra dry"
+icon = "mdi:hair-dryer"
+
+[features."Dishcare.Dishwasher.Setting.HotWater"]
+label = "Hot water connection"
+icon = "mdi:water-boiler"
+
+[features."Dishcare.Dishwasher.Setting.SpeedOnDemand"]
+label = "Speed on demand"
+icon = "mdi:fast-forward"
+
+[features."Dishcare.Dishwasher.Setting.SensitivityTurbidity"]
+label = "Turbidity sensor sensitivity"
+
+[features."Dishcare.Dishwasher.Setting.DoorOpeningHandling"]
+label = "Door opening at the end"
+icon = "mdi:door-open"
+
+[features."Dishcare.Dishwasher.Setting.DryingAssistantAllPrograms"]
+label = "Drying assistant on all programmes"
+
+[features."Dishcare.Dishwasher.Setting.EcoPrognosis"]
+label = "Show the eco forecast"
+icon = "mdi:leaf"
+
+[features."Dishcare.Dishwasher.Setting.SoundLevelKey"]
+label = "Button volume"
+icon = "mdi:volume-high"
+
+[features."Dishcare.Dishwasher.Setting.SoundLevelSignal"]
+label = "Signal volume"
+icon = "mdi:volume-high"
+
+[features."Dishcare.Dishwasher.Setting.BrandLogo"]
+label = "Show the brand logo"
+
+[features."Dishcare.Dishwasher.Event.LowVoltage"]
+device_class = "problem"
+
+[features."Dishcare.Dishwasher.Event.SmartFilterCleaningReminder"]
+icon = "mdi:air-filter"
+
+[features."Dishcare.Dishwasher.Option.SilenceOnDemand"]
+icon = "mdi:volume-off"
+
+[features."Dishcare.Dishwasher.Setting.TimeLight"]
+icon = "mdi:spotlight-beam"
+
+[features."Dishcare.Dishwasher.Status.MachineCareReminder.RemainingProgramRuns"]
+icon = "mdi:dishwasher-alert"

@@ -1,0 +1,98 @@
+# Beta channel.
+#
+# Every commit on main that passes CI is published as a pre-release of the next patch version
+# (for example 0.3.1-beta.57) and the "Kessel (beta)" add-on is bumped to it, so Home Assistant
+# offers it as an update.
+name: Beta
+
+on:
+  workflow_run:
+    workflows: [CI]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: beta
+  cancel-in-progress: true
+
+jobs:
+  version:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.compute.outputs.version }}
+      sha: ${{ steps.compute.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - id: compute
+        run: |
+          set -euo pipefail
+          stable="$(jq -r '."."' .release-please-manifest.json)"
+          IFS=. read -r major minor patch <<< "$stable"
+          version="${major}.${minor}.$((patch + 1))-beta.${GITHUB_RUN_NUMBER}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "beta version: ${version}"
+
+  images:
+    needs: version
+    uses: ./.github/workflows/build-image.yml
+    with:
+      version: ${{ needs.version.outputs.version }}
+      channel: beta
+      ref: ${{ needs.version.outputs.sha }}
+
+  publish:
+    needs: [version, images]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Bump the beta add-on
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          SHA: ${{ needs.version.outputs.sha }}
+        run: |
+          set -euo pipefail
+          sed -i -E "s/^version:.*/version: \"${VERSION}\"/" kessel-beta/config.yaml
+
+          last_tag="$(git describe --tags --abbrev=0 --match 'v*' "$SHA" 2> /dev/null || true)"
+          range="${last_tag:+${last_tag}..}${SHA}"
+          {
+            echo "# ${VERSION}"
+            echo
+            echo "Pre-release built from \`${SHA:0:7}\`. Changes since ${last_tag:-the first commit}:"
+            echo
+            git log --no-merges --format='%s' "$range" \
+              | grep -E '^(feat|fix|perf)(\(.+\))?!?: ' \
+              | sed -E 's/^/- /' \
+              || echo "- maintenance only"
+          } > kessel-beta/CHANGELOG.md
+
+      - name: Commit
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add kessel-beta/config.yaml kessel-beta/CHANGELOG.md
+          git commit -m "chore(beta): publish ${VERSION}"
+          for attempt in 1 2 3; do
+            git push origin HEAD:main && exit 0
+            git pull --rebase origin main
+          done
+          exit 1

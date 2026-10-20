@@ -1,0 +1,25 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "oxc", "unicorn", "import"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "error",
+    "pedantic": "warn"
+  },
+  "rules": {
+    "no-console": "error",
+    "typescript/consistent-type-imports": "error"
+  },
+  "overrides": [
+    {
+      // The generated barrel may be an empty `export {}` module, which this rule would flag.
+      // Scoped to that one file so the rest of the generated tree is still checked.
+      "files": ["src/generated/index.ts"],
+      "rules": {
+        "unicorn/require-module-specifiers": "off"
+      }
+    }
+  ],
+  "ignorePatterns": ["node_modules", "dist"]
+}

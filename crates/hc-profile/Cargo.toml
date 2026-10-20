@@ -1,0 +1,36 @@
+[package]
+name = "hc-profile"
+description = "Home Connect appliance profile (ZIP + XML) parsing into an entity model"
+# A literal version rather than `version.workspace = true`: release-please's `cargo-workspace`
+# plugin rewrites this line and rejects workspace inheritance.
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme.workspace = true
+
+[dependencies]
+# `Secret<T>`: psk and iv are wrapped at the parse boundary, never after.
+hc-crypto.workspace = true
+# `Profile::fingerprint`'s hex-encoded SHA-256, the profile store's upsert key.
+hex.workspace = true
+quick-xml.workspace = true
+sha2.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+# A bad profile JSON must say which field went wrong.
+serde_path_to_error.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+zip.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+zip.workspace = true
+
+[lints]
+workspace = true

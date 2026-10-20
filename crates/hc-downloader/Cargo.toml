@@ -1,0 +1,26 @@
+[package]
+name = "hc-downloader"
+description = "SingleKey ID OAuth profile downloader for Home Connect appliances (feature-gated)"
+# A literal version rather than `version.workspace = true`: release-please's `cargo-workspace`
+# plugin rewrites this line and rejects workspace inheritance.
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme.workspace = true
+
+[features]
+default = []
+# SingleKey ID OAuth + profile fetch. Fragile by nature, always opt-in.
+downloader = []
+
+[dependencies]
+
+[dev-dependencies]
+
+[lints]
+workspace = true

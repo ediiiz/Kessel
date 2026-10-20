@@ -1,0 +1,5 @@
+[toolchain]
+# The pinned toolchain. Keep `rust-version` in Cargo.toml in step with it.
+channel = "1.97.1"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

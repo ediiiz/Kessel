@@ -1,0 +1,11 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 100,
+  "tabWidth": 2,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "endOfLine": "lf",
+  // `src/generated/` is ts-rs output, compared byte for byte with a fresh run by the server's
+  // `types_are_in_sync` test, so it is not reformatted. oxlint and tsc still check it.
+  "ignorePatterns": ["node_modules", "dist", "src/generated/**"]
+}

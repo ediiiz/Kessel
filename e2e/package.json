@@ -1,0 +1,20 @@
+{
+  "name": "e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "lint": "oxfmt --check . && oxlint --deny-warnings .",
+    "check": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.0",
+    "@types/node": "24.19.1",
+    "aedes": "1.2.0",
+    "mqtt": "5.16.0",
+    "oxfmt": "0.61.0",
+    "oxlint": "1.76.0",
+    "typescript": "6.0.3"
+  }
+}

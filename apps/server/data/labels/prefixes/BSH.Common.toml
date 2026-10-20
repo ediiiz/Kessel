@@ -1,0 +1,217 @@
+# BSH.Common — the keys every Home Connect appliance shares.
+#
+# The prefix layer. Anything named here applies to all four appliances unless a model file overrides
+# it. Only keys whose derived spelling is wrong or uninformative are listed; `Setting.PowerState`
+# spells itself correctly and is deliberately absent.
+
+[features."BSH.Common.Status.OperationState"]
+label = "Operation state"
+icon = "mdi:state-machine"
+
+[features."BSH.Common.Status.RemoteControlStartAllowed"]
+label = "Remote start allowed"
+description = "Whether the appliance will accept a programme start that did not come from its own panel."
+icon = "mdi:remote"
+
+[features."BSH.Common.Status.RemoteControlActive"]
+label = "Remote control active"
+icon = "mdi:remote"
+
+[features."BSH.Common.Status.LocalControlActive"]
+label = "Being used at the appliance"
+description = "Someone is touching the appliance's own controls. Remote writes are usually refused while this is on."
+icon = "mdi:gesture-tap-button"
+
+[features."BSH.Common.Root.SelectedProgram"]
+label = "Selected programme"
+icon = "mdi:playlist-play"
+
+[features."BSH.Common.Root.ActiveProgram"]
+label = "Running programme"
+icon = "mdi:play-circle-outline"
+
+[features."BSH.Common.Option.RemainingProgramTime"]
+label = "Time remaining"
+icon = "mdi:timer-sand"
+
+[features."BSH.Common.Option.ProgramProgress"]
+label = "Progress"
+icon = "mdi:progress-clock"
+
+[features."BSH.Common.Option.StartInRelative"]
+label = "Delayed start"
+description = "How long from now the programme should begin."
+icon = "mdi:clock-start"
+
+[features."BSH.Common.Setting.TemperatureUnit"]
+label = "Temperature unit"
+icon = "mdi:thermometer"
+
+[features."BSH.Common.Setting.TemperatureUnit".values]
+Celsius = "°C"
+Fahrenheit = "°F"
+
+[features."BSH.Common.Setting.AmbientLightEnabled"]
+label = "Ambient light"
+
+[features."BSH.Common.Setting.AmbientLightBrightness"]
+label = "Ambient light brightness"
+
+[features."BSH.Common.Status.DoorState"]
+label = "Door"
+icon = "mdi:door"
+
+[features."BSH.Common.Status.DoorState".values]
+Open = "Open"
+Closed = "Closed"
+Locked = "Locked"
+
+[features."BSH.Common.Command.AbortProgram"]
+icon = "mdi:stop-circle-outline"
+
+[features."BSH.Common.Command.AllowCustomerServiceConnectionLocalWiFi"]
+icon = "mdi:wifi"
+
+[features."BSH.Common.Command.AllowSoftwareDownload"]
+icon = "mdi:update"
+
+[features."BSH.Common.Command.AllowSoftwareUpdate"]
+icon = "mdi:update"
+
+[features."BSH.Common.Command.AllowSoftwareUpdateLocalWiFi"]
+icon = "mdi:update"
+
+[features."BSH.Common.Command.ApplyFactoryReset"]
+icon = "mdi:restart"
+
+[features."BSH.Common.Command.ApplyNetworkReset"]
+icon = "mdi:restart"
+
+[features."BSH.Common.Command.DeactivateRemoteControl"]
+icon = "mdi:remote"
+
+[features."BSH.Common.Command.DeactivateRemoteControlStart"]
+icon = "mdi:remote"
+
+[features."BSH.Common.Command.DeactivateWiFi"]
+icon = "mdi:wifi"
+
+[features."BSH.Common.Command.PauseProgram"]
+icon = "mdi:pause-circle-outline"
+
+[features."BSH.Common.Command.ResumeProgram"]
+icon = "mdi:play-circle-outline"
+
+[features."BSH.Common.Command.SetWaterHardness"]
+icon = "mdi:water-percent"
+
+[features."BSH.Common.Command.StopWatchReset"]
+icon = "mdi:timer"
+
+[features."BSH.Common.Command.StopWatchStartPauseResume"]
+icon = "mdi:timer"
+
+[features."BSH.Common.Event.AlarmClockElapsed"]
+icon = "mdi:alarm"
+
+[features."BSH.Common.Event.AquaStopOccured"]
+device_class = "problem"
+
+[features."BSH.Common.Event.ConnectLocalWiFi"]
+icon = "mdi:wifi"
+
+[features."BSH.Common.Event.LowWaterPressure"]
+device_class = "problem"
+
+[features."BSH.Common.Event.ProgramAborted"]
+icon = "mdi:cancel"
+
+[features."BSH.Common.Event.ProgramFinished"]
+icon = "mdi:check-circle-outline"
+
+[features."BSH.Common.Event.SoftwareDownloadAvailable"]
+device_class = "update"
+
+[features."BSH.Common.Event.SoftwareUpdateAvailable"]
+device_class = "update"
+
+[features."BSH.Common.Event.SoftwareUpdateSuccessful"]
+icon = "mdi:update"
+
+[features."BSH.Common.Option.ElapsedProgramTime"]
+icon = "mdi:timer-outline"
+
+[features."BSH.Common.Option.EnergyForecast"]
+icon = "mdi:lightning-bolt"
+
+[features."BSH.Common.Option.RemainingProgramTime.AutoCounting"]
+icon = "mdi:timer-sand"
+
+[features."BSH.Common.Option.RemainingProgramTimeEstimatedMax"]
+icon = "mdi:timer-sand"
+
+[features."BSH.Common.Option.RemainingProgramTimeEstimatedMin"]
+icon = "mdi:timer-sand"
+
+[features."BSH.Common.Option.RemainingProgramTimeEstimationState"]
+icon = "mdi:timer-sand"
+
+[features."BSH.Common.Option.RemainingProgramTimeIsEstimated"]
+icon = "mdi:timer-sand"
+
+[features."BSH.Common.Option.WaterForecast"]
+icon = "mdi:water"
+
+[features."BSH.Common.Setting.AlarmClock"]
+icon = "mdi:alarm"
+
+[features."BSH.Common.Setting.AllowBackendConnection"]
+icon = "mdi:cloud-outline"
+
+[features."BSH.Common.Setting.ApplianceDateTime"]
+icon = "mdi:clock-outline"
+
+[features."BSH.Common.Setting.ChildLock"]
+icon = "mdi:lock"
+
+[features."BSH.Common.Setting.Language"]
+icon = "mdi:translate"
+
+[features."BSH.Common.Setting.PowerState"]
+icon = "mdi:power"
+
+[features."BSH.Common.Setting.RemoteControlLevel"]
+icon = "mdi:remote"
+
+[features."BSH.Common.Setting.SynchronizeWithTimeServer"]
+icon = "mdi:clock-outline"
+
+[features."BSH.Common.Setting.Time.DisplayMode"]
+icon = "mdi:clock-outline"
+
+[features."BSH.Common.Setting.TimeFormat"]
+icon = "mdi:clock-outline"
+
+[features."BSH.Common.Setting.Timezone"]
+icon = "mdi:clock-outline"
+
+[features."BSH.Common.Status.BackendConnected"]
+device_class = "connectivity"
+
+[features."BSH.Common.Status.ErrorCodesList"]
+icon = "mdi:alert-circle-outline"
+
+[features."BSH.Common.Status.InteriorIlluminationActive"]
+device_class = "light"
+
+[features."BSH.Common.Status.SoftwareUpdateTransactionID"]
+icon = "mdi:update"
+
+[features."BSH.Common.Status.StopWatchState"]
+icon = "mdi:timer"
+
+[features."BSH.Common.Status.StopWatchTime"]
+icon = "mdi:timer"
+
+[features."BSH.Common.Status.WiFiSignalStrength"]
+icon = "mdi:wifi"

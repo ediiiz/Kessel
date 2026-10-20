@@ -1,0 +1,94 @@
+# Builds, smoke-tests and pushes the add-on images for one version.
+#
+# Home Assistant substitutes `{arch}` into the add-on's `image:`, so each architecture is its own
+# repository: ghcr.io/<owner>/kessel-amd64 and ghcr.io/<owner>/kessel-aarch64. Both channels share
+# them; a beta is just a pre-release version tag.
+name: Build image
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: Image tag, and the version compiled into the binary
+        type: string
+        required: true
+      channel:
+        description: Moving tag to update alongside the version (latest | beta)
+        type: string
+        required: true
+      ref:
+        description: Git ref to build
+        type: string
+        required: false
+        default: ""
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Image tag, and the version compiled into the binary
+        type: string
+        required: true
+      channel:
+        description: Moving tag to update alongside the version
+        type: choice
+        options: [beta, latest]
+        default: beta
+      ref:
+        description: Git ref to build (empty = the selected branch)
+        type: string
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  image:
+    name: ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-latest
+          - arch: aarch64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    env:
+      IMAGE: ghcr.io/${{ github.repository_owner }}/kessel-${{ matrix.arch }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Log in to ghcr.io
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Build
+        run: |
+          set -euo pipefail
+          image="${IMAGE,,}"
+          docker buildx create --use --name kessel
+          docker buildx build \
+            --platform "${{ matrix.platform }}" \
+            --build-arg "KESSEL_VERSION=${{ inputs.version }}" \
+            --label "org.opencontainers.image.version=${{ inputs.version }}" \
+            --label "org.opencontainers.image.revision=${{ github.sha }}" \
+            --cache-from "type=registry,ref=${image}:buildcache" \
+            --cache-to "type=registry,ref=${image}:buildcache,mode=max" \
+            --tag "${image}:${{ inputs.version }}" \
+            --tag "${image}:${{ inputs.channel }}" \
+            --load \
+            .
+
+      - name: Smoke test
+        run: .github/scripts/smoke-test.sh "${IMAGE,,}:${{ inputs.version }}"
+
+      - name: Push
+        run: |
+          set -euo pipefail
+          image="${IMAGE,,}"
+          docker push "${image}:${{ inputs.version }}"
+          docker push "${image}:${{ inputs.channel }}"

@@ -1,0 +1,159 @@
+# Refrigeration.Common — the fridge/freezer keys.
+#
+# The prefix layer for every refrigeration appliance. Two things are contributed here: names where
+# the derived spelling is wrong or uninformative, and `enabled_by_default` / `entity_category` for
+# the handful of features an operator actually wants on the Home Assistant device page.
+#
+# On the curation fields: `hc_core::mapping`'s `PRIMARY_LEAVES` is fifteen leaf names and it is the
+# whole heuristic, so everything here arrives disabled and filed under Configuration by default.
+# That default is right for the long tail and wrong for the six modes and two lights below, which
+# are what a fridge is for. Nothing derivable separates them from `Light.Internal.Brightness` — a
+# person who has looked at the appliance does, and this file is where that goes.
+#
+# Every key here is one the SIEMENS KG49NSBBF declares in its own `FeatureMapping.xml`. Nothing is
+# invented, and a `description` is omitted rather than guessed at.
+
+# --- the modes ------------------------------------------------------------------------------
+
+[features."Refrigeration.Common.Setting.EcoMode"]
+label = "Eco mode"
+enabled_by_default = true
+entity_category = "primary"
+icon = "mdi:leaf"
+
+[features."Refrigeration.Common.Setting.FreshMode"]
+label = "Fresh mode"
+enabled_by_default = true
+entity_category = "primary"
+
+[features."Refrigeration.Common.Setting.SabbathMode"]
+label = "Sabbath mode"
+enabled_by_default = true
+entity_category = "primary"
+
+[features."Refrigeration.Common.Setting.VacationMode"]
+label = "Holiday mode"
+enabled_by_default = true
+entity_category = "primary"
+
+# --- the lights -----------------------------------------------------------------------------
+#
+# `Light.Internal` is the one inside the cabinet; `Light.External` is the one on the outside of the
+# appliance. Both derive as a bare `Power`, which says nothing at all next to another `Power`.
+
+[features."Refrigeration.Common.Setting.Light.Internal.Power"]
+label = "Interior light"
+enabled_by_default = true
+entity_category = "primary"
+icon = "mdi:lightbulb"
+
+[features."Refrigeration.Common.Setting.Light.External.Power"]
+label = "Exterior light"
+enabled_by_default = true
+entity_category = "primary"
+icon = "mdi:lightbulb"
+
+[features."Refrigeration.Common.Setting.Light.Internal.Brightness"]
+label = "Interior light brightness"
+icon = "mdi:lightbulb"
+
+[features."Refrigeration.Common.Setting.Light.External.Brightness"]
+label = "Exterior light brightness"
+icon = "mdi:lightbulb"
+
+[features."Refrigeration.Common.Setting.Light.Internal.EnableTheaterMode"]
+label = "Interior light theatre mode"
+icon = "mdi:lightbulb"
+
+[features."Refrigeration.Common.Setting.Light.External.AfterGlowEnabled"]
+label = "Exterior light afterglow"
+icon = "mdi:lightbulb"
+
+[features."Refrigeration.Common.Setting.Light.External.AfterGlow"]
+label = "Exterior light afterglow time"
+icon = "mdi:lightbulb"
+
+# --- the compartments -----------------------------------------------------------------------
+#
+# These derive as a bare `SetpointTemperature` / `SuperMode` / `MemoryTemperature`, which on an
+# appliance with two compartments is the same name twice. The compartment is in the key and belongs
+# in the name.
+#
+# The setpoints are the numbers an operator came for, so they are enabled AND prominent.
+#
+# On this fridge they are published as readings rather than controls: it declares
+# `min="0" max="0" stepSize="0"` on both, so there is no range Home Assistant could offer a control
+# over (`hc_core::mapping::is_settable`). Left to the heuristic they would land under Diagnostic,
+# which HA collapses — the wrong place for the two numbers a fridge is asked for. `primary` puts
+# them at the top beside the modes.
+#
+# An appliance that declares a real range gets a Number from the same rule and keeps this placement,
+# with no change here.
+
+[features."Refrigeration.Common.Setting.Refrigerator.SetpointTemperature"]
+label = "Fridge temperature"
+enabled_by_default = true
+entity_category = "primary"
+icon = "mdi:thermometer"
+
+[features."Refrigeration.Common.Setting.Freezer.SetpointTemperature"]
+label = "Freezer temperature"
+enabled_by_default = true
+entity_category = "primary"
+icon = "mdi:thermometer"
+
+[features."Refrigeration.Common.Setting.Refrigerator.SuperMode"]
+label = "Fridge super mode"
+icon = "mdi:snowflake"
+
+[features."Refrigeration.Common.Setting.Freezer.SuperMode"]
+label = "Freezer super mode"
+icon = "mdi:snowflake"
+
+[features."Refrigeration.Common.Status.Freezer.MemoryTemperature"]
+label = "Freezer temperature (last set)"
+icon = "mdi:thermometer"
+
+# --- the doors ------------------------------------------------------------------------------
+#
+# Both derive to `Freezer` and `Refrigerator`, which read as compartments rather than as doors. They
+# are enabled because "is the freezer open" is the single most automated thing a fridge reports.
+
+[features."Refrigeration.Common.Status.Door.Refrigerator"]
+label = "Fridge door"
+enabled_by_default = true
+entity_category = "primary"
+
+[features."Refrigeration.Common.Status.Door.Freezer"]
+label = "Freezer door"
+enabled_by_default = true
+entity_category = "primary"
+
+# --- the alarms -----------------------------------------------------------------------------
+#
+# Events. Every appliance declares its events with no `access` attribute at all, so they are read-
+# only notifications; these three are the ones worth an automation.
+
+[features."Refrigeration.Common.Event.Door.AlarmRefrigerator"]
+label = "Fridge door alarm"
+enabled_by_default = true
+entity_category = "primary"
+device_class = "problem"
+
+[features."Refrigeration.Common.Event.Door.AlarmFreezer"]
+label = "Freezer door alarm"
+enabled_by_default = true
+entity_category = "primary"
+device_class = "problem"
+
+[features."Refrigeration.Common.Event.Freezer.TemperatureAlarm"]
+label = "Freezer temperature alarm"
+enabled_by_default = true
+entity_category = "primary"
+device_class = "problem"
+
+[features."Refrigeration.Common.Event.ApplianceError"]
+label = "Appliance error"
+enabled_by_default = true
+entity_category = "diagnostic"
+device_class = "problem"

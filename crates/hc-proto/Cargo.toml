@@ -1,0 +1,39 @@
+[package]
+name = "hc-proto"
+description = "Local Home Connect message model, defensive parsing and handshake state machine"
+# A literal version, not `version.workspace = true`: release-please's `cargo-workspace` plugin
+# rewrites this line on release and rejects workspace inheritance.
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme.workspace = true
+
+[dependencies]
+# The wire JSON model and its compact, order-controlled serialisation.
+serde = { workspace = true }
+serde_json = { workspace = true }
+# One typed error per handshake failure and per response `code`.
+thiserror = { workspace = true }
+# Debug-level routing/skip logs; never renders a secret.
+tracing = { workspace = true }
+# Drives decrypt/encrypt through the byte-exact AES chain and re-uses `Secret<T>`.
+hc-crypto = { workspace = true }
+# The `/ci/authentication` nonce is base64url(32 bytes) with `=` stripped.
+base64 = { workspace = true }
+# Production nonce entropy only; the fixture path injects a deterministic source instead.
+rand = { workspace = true }
+
+[dev-dependencies]
+# Decodes the golden corpus's hex fields in the replay tests.
+hex = { workspace = true }
+# Asserts the debug-level "ignored/skipped" log lines fire. `no-env-filter` so the capture includes
+# events from the `hc_proto` target, not just the test crate's.
+tracing-test = { workspace = true, features = ["no-env-filter"] }
+
+[lints]
+workspace = true

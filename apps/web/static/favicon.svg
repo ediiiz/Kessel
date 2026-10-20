@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="Kessel">
+  <!--
+    The tab icon: the Kessel mark on a clay tile.
+
+    THE GEOMETRY IS DUPLICATED, ON PURPOSE. `src/lib/components/Logo.svelte` draws the same three
+    paths for in-app use. A favicon is fetched by the browser as a standalone document, so it cannot
+    import a Svelte component, and inlining the app's mark into `app.html` as a data: URI would put
+    the same bytes in a worse place. Two copies, one comment each pointing at the other: edit both or
+    neither.
+
+    COLOURS ARE LITERALS, NOT TOKENS, because nothing in this file can see `app.css`. They are the
+    `--primary` clay family converted from oklch to sRGB:
+
+      #a25e21  oklch(0.55 0.115 58)  — the tile, a step lighter than the light-theme `--primary`
+                                       (0.48) so it stays visible against a dark browser chrome
+      #d2833b  oklch(0.68 0.13 60)   — the tile under `prefers-color-scheme: dark`
+      #fefaf1  oklch(0.985 0.012 85) — the mark, warm paper
+      #201208  oklch(0.20 0.03 58)   — the mark on the light tile, dark theme
+
+    The media query is progressive enhancement: a browser that ignores `prefers-color-scheme` in an
+    SVG favicon (or renders it without a style engine at all) gets the mid-clay tile, which is the
+    one chosen to work on either chrome. Nothing depends on the query being honoured.
+  -->
+  <style>
+    .tile { fill: #a25e21 }
+    .mark { fill: none; stroke: #fefaf1; stroke-linecap: round; stroke-linejoin: round }
+    .mark-solid { fill: #fefaf1 }
+    @media (prefers-color-scheme: dark) {
+      .tile { fill: #d2833b }
+      .mark { stroke: #201208 }
+      .mark-solid { fill: #201208 }
+    }
+  </style>
+  <rect class="tile" width="32" height="32" rx="7" />
+  <rect class="mark-solid" x="5.4" y="6" width="3.6" height="20" rx="1.8" />
+  <path class="mark" d="M18.2 7.6 9.4 16l8.8 8.4" stroke-width="3.6" />
+  <path class="mark" d="M23.4 10.4a8.6 8.6 0 0 1 0 11.2" stroke-width="2.8" opacity=".5" />
+</svg>

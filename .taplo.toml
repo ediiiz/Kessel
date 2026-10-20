@@ -1,0 +1,7 @@
+# Completion and checking for the label catalogue in taplo-based editors (VS Code's Even Better TOML,
+# Zed, Helix). The schema is generated from the loader's types by `just types`.
+[[rule]]
+include = ["apps/server/data/labels/**/*.toml"]
+
+[rule.schema]
+path = "./apps/server/data/labels/schema.json"

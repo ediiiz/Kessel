@@ -1,0 +1,118 @@
+{
+  "$schema": "./node_modules/fallow/schema.json",
+  // fallow: codebase-graph analysis (dead code, dependency hygiene, cycles, clones, complexity).
+  // oxlint reads one file at a time; fallow reads the project graph.
+  //
+  //   bun run fallow   all analyses, no baseline. Exits 1 while any debt exists.
+  //   bun run lint     ends with `fallow dead-code --baseline .fallow-baseline.json`, the CI gate.
+  //                    Only `dead-code` gates: its findings have a yes/no answer, whereas `health`
+  //                    and `dupes` are measurements and estimates.
+  //
+  // `.fallow-baseline.json` is a ratchet: existing findings stay silent and a new one fails. It
+  // matches per file and category, so re-save it (`bun run fallow:baseline`) after a refactor
+  // that moves findings around, and shrink it as debt is paid; never grow it to pass a build.
+  // It lives here rather than in `.fallow/`, which is a cache directory fallow gitignores.
+  //
+  // `src/lib/components/ui/**` and `src/lib/hooks/**` are vendored from the shadcn-svelte
+  // registry, as in `.oxlintrc.json`.
+  //
+  // `ignoreFindings`, not `ignorePatterns`: the vendored files must stay in the module graph
+  // because every route imports through them; this hides only the findings they own.
+  "ignoreFindings": ["src/lib/components/ui/**", "src/lib/hooks/**"],
+  // `svelte.config.js`'s default export is read by SvelteKit's tooling, not by any import, so it
+  // is the one false positive of `includeEntryExports`. It is named alone rather than by a glob
+  // so that a config file that stops being recognised shows up as a finding.
+  "ignoreExports": [{ "file": "svelte.config.js", "exports": ["default"] }],
+  // `typeAware` is not enabled: on this tree the type-aware sidecar times out after the default
+  // 120 seconds. Use it per invocation before deleting something the graph calls unused:
+  // `FALLOW_TIMEOUT_SECS=600 bun x fallow dead-code --type-aware --symbol-impact <file>:<export>`.
+  // An export nobody imports is dead whether or not it sits in a route file. SvelteKit routes are
+  // entry points, so their exports are credited as used by default; this turns that credit off so
+  // a stray or misspelled `export` in `+page.svelte`/`+layout.ts` is still a finding. Plugin
+  // allowlists (`load`, `actions`, `prerender`, …) are honoured regardless.
+  "includeEntryExports": true,
+  "rules": {
+    // Every rule that ships as `warn` is promoted to `error`: `warn` exits 0, and a finding that
+    // cannot fail the build is a finding nobody reads.
+    "unused-files": "error",
+    "unused-exports": "error",
+    "unused-types": "error",
+    "unused-dependencies": "error",
+    "unused-dev-dependencies": "error",
+    "unused-optional-dependencies": "error",
+    "unused-enum-members": "error",
+    "unused-class-members": "error",
+    "unused-store-members": "error",
+    "unrendered-components": "error",
+    "unused-component-props": "error",
+    "unused-svelte-events": "error",
+    "unused-server-actions": "error",
+    "unused-load-data-keys": "error",
+    "unresolved-imports": "error",
+    "unlisted-dependencies": "error",
+    "duplicate-exports": "error",
+    "type-only-dependencies": "error",
+    "test-only-dependencies": "error",
+    "circular-dependencies": "error",
+    "re-export-cycle": "error",
+    "boundary-violation": "error",
+    "route-collision": "error",
+    "dynamic-segment-name-conflict": "error",
+    "invalid-client-export": "error",
+    "mixed-client-server-barrel": "error",
+    "misplaced-directive": "error",
+    "policy-violation": "error",
+    "unused-catalog-entries": "error",
+    "empty-catalog-groups": "error",
+    "unresolved-catalog-references": "error",
+    "unused-dependency-overrides": "error",
+    "misconfigured-dependency-overrides": "error",
+    // Stylesheet rules. The design tokens live in `src/app.css`; a hard-coded colour that drifts
+    // from them is exactly the kind of thing that is invisible in review.
+    "css-token-drift": "error",
+    "css-duplicate-block": "error",
+    "css-selector-complexity": "error",
+    "css-dead-surface": "error",
+    "css-broken-reference": "error",
+    // Opt-in (ships `off`), enabled deliberately.
+    //
+    // `private-type-leaks`: an exported signature referencing a same-file private type is a break
+    // for `@kessel/api-types` consumers, and this package is imported by the workspace.
+    // `require-suppression-reason` + `stale-suppressions`: every `fallow-ignore` must say why, and
+    // one that no longer suppresses anything must be removed.
+    "private-type-leaks": "error",
+    "require-suppression-reason": "error",
+    "stale-suppressions": "error",
+    // `dev-dependencies-in-production` stays advisory, alone. It fires on `svelte` and
+    // `tailwindcss`, which are devDependencies *by design*: Vite compiles both away at build time
+    // and neither ships in `build/`. The rule cannot see that, so the finding stays visible but
+    // non-gating.
+    "dev-dependencies-in-production": "warn",
+    // Left `off`:
+    //
+    // `coverage-gaps` needs an Istanbul `coverage-final.json`; Vitest here is not configured to
+    // emit one, so the rule would grade every file as untested. Wire `health.coverage` first.
+    // `feature-flags` needs a flag SDK or env-var convention; there is none.
+    // `security-*` belong to the opt-in `fallow security` command, which reports *candidates* for
+    // an agent to verify, not gate-able findings.
+    // `unprovided-injects`, `unused-component-emits`/`-inputs`/`-outputs` are Vue/Angular
+    // vocabulary and cannot fire on a Svelte 5 codebase.
+    "coverage-gaps": "off",
+    "feature-flags": "off",
+    "security-client-server-leak": "off",
+    "security-sink": "off",
+    // Heuristics, not defects: `prop-drilling`, `thin-wrapper` and `duplicate-prop-shape` are
+    // taste calls about component decomposition. Left off — a gate has to be answerable with a
+    // fix, and "this wrapper is thin" often has no fix that is an improvement.
+    "prop-drilling": "off",
+    "thin-wrapper": "off",
+    "duplicate-prop-shape": "off"
+  },
+  "health": {
+    "ignore": ["src/lib/components/ui/**", "src/lib/hooks/**"]
+  },
+  "duplicates": {
+    "mode": "semantic",
+    "ignore": ["src/lib/components/ui/**", "src/lib/hooks/**"]
+  }
+}

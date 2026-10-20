@@ -1,0 +1,16 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 100,
+  "tabWidth": 2,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "endOfLine": "lf",
+  "svelte": true,
+  "ignorePatterns": [
+    "build",
+    ".svelte-kit",
+    "node_modules",
+    "src/lib/components/ui",
+    "src/lib/hooks"
+  ]
+}

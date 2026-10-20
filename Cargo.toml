@@ -1,0 +1,221 @@
+[workspace]
+resolver = "3"
+members = [
+    "apps/server",
+    "apps/sim",
+    "crates/hc-core",
+    "crates/hc-crypto",
+    "crates/hc-downloader",
+    "crates/hc-profile",
+    "crates/hc-proto",
+    "crates/hc-transport",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.97.1"
+license = "MIT"
+repository = "https://github.com/ediiiz/Kessel"
+# No e-mail address: this manifest ends up in published crate metadata.
+authors = ["Ediz Tefenlilioglu"]
+keywords = ["home-connect", "home-assistant", "iot", "websocket"]
+categories = ["network-programming"]
+# Inherited by every member; required by `clippy::cargo_common_metadata`.
+readme = "README.md"
+
+# Shared dependency versions. Members opt in with `dep.workspace = true`; an unused entry is
+# never compiled.
+[workspace.dependencies]
+
+# --- internal crates -------------------------------------------------------------------------
+hc-core = { path = "crates/hc-core", version = "0.1.0" }
+hc-crypto = { path = "crates/hc-crypto", version = "0.1.0" }
+hc-downloader = { path = "crates/hc-downloader", version = "0.1.0" }
+hc-profile = { path = "crates/hc-profile", version = "0.1.0" }
+hc-proto = { path = "crates/hc-proto", version = "0.1.0" }
+hc-transport = { path = "crates/hc-transport", version = "0.1.0" }
+
+# --- serialization / data model --------------------------------------------------------------
+serde = { version = "1", features = ["derive", "rc"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+serde_repr = "0.1"
+serde_with = "3"
+serde_yaml = "0.9"          # mapping.yaml enrichment catalogue
+toml = "1"
+schemars = "1"
+quick-xml = { version = "0.41", features = ["serialize"] }
+zip = { version = "8", default-features = false, features = ["deflate"] }
+base64 = "0.22"
+hex = "0.4"
+bytes = "1"
+url = "2"
+uuid = { version = "1", features = ["v4", "serde"] }
+
+# --- errors: thiserror in libraries, anyhow only in binaries ---------------------------------
+thiserror = "2"
+anyhow = "1"
+
+# --- async runtime / streams -----------------------------------------------------------------
+tokio = { version = "1", features = [
+    "rt-multi-thread",
+    "macros",
+    "net",
+    "sync",
+    "time",
+    "signal",
+    "io-util",
+    "fs",
+    "process",
+    # `tokio::time::pause`/`advance`, for timeout and heartbeat tests on a fake clock.
+    "test-util",
+] }
+tokio-util = { version = "0.7", features = ["codec", "rt"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
+futures = "0.3"
+futures-util = { version = "0.3", default-features = false, features = ["std", "sink"] }
+async-trait = "0.1"
+pin-project-lite = "0.2"
+parking_lot = "0.12"
+
+# --- device WebSocket ------------------------------------------------------------------------
+# No TLS features: TLS-PSK runs over an existing OpenSSL stream, so no second TLS stack is linked.
+# `connect` links no TLS; it enables `connect_async` for the plain `ws://` AES transport.
+tokio-tungstenite = { version = "0.30", default-features = false, features = [
+    "handshake",
+    "connect",
+] }
+tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
+
+# --- TLS-PSK: the only C dependency; `vendored` is required ----------------------------------
+openssl = { version = "0.10.81", features = ["vendored"] }
+openssl-sys = { version = "0.9", features = ["vendored"] }
+# Async wrapper over `openssl::ssl::SslStream`, pulled in only behind the `tls-psk` feature.
+tokio-openssl = { version = "0.6" }
+
+# --- AES app-layer crypto --------------------------------------------------------------------
+aes = "0.8"
+cbc = { version = "0.1", features = ["alloc"] }
+cipher = { version = "0.4", features = ["block-padding"] }
+hmac = "0.12"
+sha2 = "0.10"
+subtle = "2"
+zeroize = { version = "1", features = ["derive"] }
+rand = "0.9"
+rand_chacha = "0.9"          # seedable RNG for byte-exact ciphertext reproduction
+
+# --- observability ---------------------------------------------------------------------------
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json", "registry"] }
+tracing-core = "0.1"
+tracing-appender = "0.2"
+
+# --- HTTP server / SPA host / SSE ------------------------------------------------------------
+axum = { version = "0.8", features = ["macros", "multipart"] }
+axum-extra = { version = "0.10", features = ["typed-header"] }
+tower = { version = "0.5", features = ["util"] }
+tower-http = { version = "0.6", features = ["fs", "compression-gzip", "trace", "cors", "set-header"] }
+http = "1"
+http-body-util = "0.1"
+hyper = "1"
+hyper-util = { version = "0.1", features = ["tokio"] }
+mime_guess = "2"
+rust-embed = { version = "8", features = ["mime-guess"] }
+
+# --- API contract ----------------------------------------------------------------------------
+ts-rs = { version = "12", features = ["serde-compat", "no-serde-warnings"] }
+
+# --- MQTT / HA discovery ---------------------------------------------------------------------
+# `default-features = false` drops `use-rustls`, keeping vendored OpenSSL the only TLS stack.
+# Plain TCP to a local broker needs no feature.
+rumqttc = { version = "0.25", default-features = false }
+
+# --- profile downloader, feature-gated -------------------------------------------------------
+reqwest = { version = "0.12", default-features = false, features = [
+    "json",
+    "cookies",
+    "stream",
+    "native-tls-vendored",
+] }
+oauth2 = "5"
+scraper = "0.27"
+
+# --- configuration / CLI / lifecycle ---------------------------------------------------------
+figment = { version = "0.10", features = ["toml", "yaml", "env"] }
+config = "0.15"
+clap = { version = "4", features = ["derive", "env"] }
+directories = "6"
+humantime = "2"
+humantime-serde = "1"
+time = { version = "0.3", features = ["formatting", "macros", "serde"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
+
+# --- small utilities -------------------------------------------------------------------------
+once_cell = "1"
+regex = "1"
+strum = { version = "0.28", features = ["derive"] }
+serde_path_to_error = "0.1"   # defensive parsing: say *where* the JSON went wrong
+notify = "8"                  # config hot-reload
+itertools = "0.15"
+indexmap = { version = "2", features = ["serde"] }
+dashmap = "6"
+walkdir = "2"
+
+# --- dev / test only -------------------------------------------------------------------------
+tokio-test = "0.4"
+tempfile = "3"
+pretty_assertions = "1"
+proptest = "1"
+insta = { version = "1", features = ["json"] }
+serial_test = "4"
+rstest = "0.26"
+tracing-test = "0.2"
+wiremock = "0.6"              # HTTP fakes for the downloader
+mockall = "0.13"
+
+# Workspace lints. Every member opts in with `lints.workspace = true` (checked by the
+# `clippy_gate_is_wired` test); numeric thresholds live in `clippy.toml`.
+[workspace.lints.clippy]
+# Groups. priority = -1 so specific overrides below win over the group setting.
+pedantic = { level = "warn", priority = -1 }   # naming, docs, obvious-complexity smells
+nursery = { level = "warn", priority = -1 }    # incl. cognitive_complexity, large_stack_frames
+cargo = { level = "warn", priority = -1 }      # manifest hygiene
+
+# --- complexity / size caps ---
+cognitive_complexity = "warn"      # threshold in clippy.toml
+too_many_lines = "warn"            # threshold in clippy.toml
+too_many_arguments = "warn"        # threshold in clippy.toml
+type_complexity = "warn"           # threshold in clippy.toml
+excessive_nesting = "warn"         # threshold in clippy.toml (off unless set)
+large_enum_variant = "warn"
+large_stack_frames = "warn"
+struct_excessive_bools = "warn"    # prefer enums/flags structs over bool soup
+fn_params_excessive_bools = "warn"
+module_name_repetitions = "allow"  # pedantic; noisy with the hc-* prefixing — allow deliberately
+
+# Duplicate crate versions come from third-party dependency trees and cannot be fixed from
+# workspace code, so this one `cargo` group lint is off.
+multiple_crate_versions = "allow"
+
+# --- maintainability / safety restriction picks (restriction is opt-in, cherry-picked) ---
+unwrap_used = "warn"               # lib paths; tests may override
+expect_used = "warn"
+panic = "warn"
+todo = "warn"
+unimplemented = "warn"
+indexing_slicing = "warn"          # no silent panics; crypto uses reasoned allows
+dbg_macro = "warn"
+print_stdout = "warn"              # force tracing, not println
+print_stderr = "warn"
+clone_on_ref_ptr = "warn"
+mem_forget = "warn"
+allow_attributes_without_reason = "warn"  # every #[allow] must justify itself
+missing_assert_message = "warn"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"             # crates override to "allow" only at the OpenSSL boundary
+missing_debug_implementations = "warn"
+unreachable_pub = "warn"
+
+[profile.dev]
+debug = "line-tables-only"

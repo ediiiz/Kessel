@@ -1,0 +1,216 @@
+# Cooking.Hob — the cooktop keys.
+#
+# **This appliance can be turned on from Home Assistant.** A name that misdescribes a zone is a name
+# on a control that heats.
+#
+# ## The problem this file exists to solve
+#
+# A derived name is `humanize(last_segment(key))`, and the hob declares its zones as
+# `Cooking.Hob.Status.Zone.<NNN>.PowerLevel` — six keys whose last segment is identical. Without a
+# contributed name Home Assistant shows **six entities called "Power level"**, distinguishable only
+# by the entity id. That is the worst case of the derived fallback in the whole fleet, and no
+# spelling transform can fix it: the distinguishing part of the key is not in the leaf.
+#
+# The zone numbers are the appliance's own (`Zone.100`, `.120`, `.200`, `.300`, `.340`, `.400`) and
+# they are **not** positions — `Cooking.Hob.Status.Zone.<NNN>.Position` is a separate feature the
+# appliance reports at run time. So the names below carry the number, not a guess at where the ring
+# is. Naming one "front left" without having stood in front of this cooktop would be an invented
+# fact, and on a hob it is the invented fact that turns on the wrong ring.
+#
+# Nothing here is promoted to `enabled_by_default`. `PRIMARY_LEAVES` already enables each zone's
+# `OperationState`, and six power levels plus six programme progresses on the prominent page is not
+# an improvement — they are one click away under the disabled list.
+
+[features."Cooking.Hob.Status.Zone.100.PowerLevel"]
+label = "Zone 100 power level"
+icon = "mdi:fire"
+
+[features."Cooking.Hob.Status.Zone.120.PowerLevel"]
+label = "Zone 120 power level"
+icon = "mdi:fire"
+
+[features."Cooking.Hob.Status.Zone.200.PowerLevel"]
+label = "Zone 200 power level"
+icon = "mdi:fire"
+
+[features."Cooking.Hob.Status.Zone.300.PowerLevel"]
+label = "Zone 300 power level"
+icon = "mdi:fire"
+
+[features."Cooking.Hob.Status.Zone.340.PowerLevel"]
+label = "Zone 340 power level"
+icon = "mdi:fire"
+
+[features."Cooking.Hob.Status.Zone.400.PowerLevel"]
+label = "Zone 400 power level"
+icon = "mdi:fire"
+
+[features."Cooking.Hob.Status.Zone.100.State"]
+label = "Zone 100 state"
+
+[features."Cooking.Hob.Status.Zone.120.State"]
+label = "Zone 120 state"
+
+[features."Cooking.Hob.Status.Zone.200.State"]
+label = "Zone 200 state"
+
+[features."Cooking.Hob.Status.Zone.300.State"]
+label = "Zone 300 state"
+
+[features."Cooking.Hob.Status.Zone.340.State"]
+label = "Zone 340 state"
+
+[features."Cooking.Hob.Status.Zone.400.State"]
+label = "Zone 400 state"
+
+[features."Cooking.Hob.Status.Zone.100.OperationState"]
+label = "Zone 100 operation state"
+icon = "mdi:state-machine"
+
+[features."Cooking.Hob.Status.Zone.120.OperationState"]
+label = "Zone 120 operation state"
+icon = "mdi:state-machine"
+
+[features."Cooking.Hob.Status.Zone.200.OperationState"]
+label = "Zone 200 operation state"
+icon = "mdi:state-machine"
+
+[features."Cooking.Hob.Status.Zone.300.OperationState"]
+label = "Zone 300 operation state"
+icon = "mdi:state-machine"
+
+[features."Cooking.Hob.Status.Zone.340.OperationState"]
+label = "Zone 340 operation state"
+icon = "mdi:state-machine"
+
+[features."Cooking.Hob.Status.Zone.400.OperationState"]
+label = "Zone 400 operation state"
+icon = "mdi:state-machine"
+
+# --- the extractor --------------------------------------------------------------------------
+#
+# This hob has an integrated extractor hood. Its ventilation and filter are the settings an operator
+# reaches for, and the saturation warnings are worth an automation.
+
+[features."Cooking.Hob.Setting.Ventilation"]
+label = "Extractor"
+enabled_by_default = true
+entity_category = "primary"
+
+[features."Cooking.Hob.Setting.VentilationAutomaticStart"]
+label = "Extractor starts automatically"
+
+[features."Cooking.Hob.Setting.VentilationAfterRun"]
+label = "Extractor run-on time"
+
+[features."Cooking.Hob.Setting.AirCirculationMode"]
+label = "Air circulation mode"
+
+[features."Cooking.Hob.Setting.AirQualitySensorSensitivity"]
+label = "Air quality sensor sensitivity"
+
+[features."Cooking.Hob.Status.CarbonFilterSaturation"]
+label = "Carbon filter saturation"
+enabled_by_default = true
+icon = "mdi:air-filter"
+
+[features."Cooking.Hob.Command.CarbonFilterReset"]
+label = "Reset the carbon filter counter"
+icon = "mdi:air-filter"
+
+[features."Cooking.Hob.Event.CarbonFilterMaxSaturationReached"]
+label = "Carbon filter saturated"
+enabled_by_default = true
+entity_category = "primary"
+device_class = "problem"
+
+[features."Cooking.Hob.Event.CarbonFilterMaxSaturationNearlyReached"]
+label = "Carbon filter nearly saturated"
+enabled_by_default = true
+device_class = "problem"
+
+# --- the panel ------------------------------------------------------------------------------
+
+[features."Cooking.Hob.Setting.AutomaticKeyLock"]
+label = "Automatic key lock"
+
+[features."Cooking.Hob.Setting.PowerManagement"]
+label = "Power limit"
+
+[features."Cooking.Hob.Setting.EnergyConsumptionIndication"]
+label = "Show energy consumption"
+
+[features."Cooking.Hob.Setting.BuzzerBeepLevel"]
+label = "Buzzer volume"
+
+[features."Cooking.Hob.Setting.EndTimerSignalduration"]
+label = "Timer signal duration"
+
+[features."Cooking.Hob.Setting.AutomaticZoneSelection"]
+label = "Automatic zone selection"
+
+[features."Cooking.Hob.Setting.ZoneSelectionTime"]
+label = "Zone selection timeout"
+
+[features."Cooking.Hob.Status.Size.LengthX"]
+label = "Cooktop width"
+
+[features."Cooking.Hob.Status.Size.LengthY"]
+label = "Cooktop depth"
+
+[features."Cooking.Hob.Option.PowerLevel"]
+icon = "mdi:fire"
+
+[features."Cooking.Hob.Status.Zone.100.ElapsedProgramTime"]
+icon = "mdi:timer-outline"
+
+[features."Cooking.Hob.Status.Zone.100.ProgramProgress"]
+icon = "mdi:progress-clock"
+
+[features."Cooking.Hob.Status.Zone.100.RemainingProgramTime"]
+icon = "mdi:timer-sand"
+
+[features."Cooking.Hob.Status.Zone.120.ElapsedProgramTime"]
+icon = "mdi:timer-outline"
+
+[features."Cooking.Hob.Status.Zone.120.ProgramProgress"]
+icon = "mdi:progress-clock"
+
+[features."Cooking.Hob.Status.Zone.120.RemainingProgramTime"]
+icon = "mdi:timer-sand"
+
+[features."Cooking.Hob.Status.Zone.200.ElapsedProgramTime"]
+icon = "mdi:timer-outline"
+
+[features."Cooking.Hob.Status.Zone.200.ProgramProgress"]
+icon = "mdi:progress-clock"
+
+[features."Cooking.Hob.Status.Zone.200.RemainingProgramTime"]
+icon = "mdi:timer-sand"
+
+[features."Cooking.Hob.Status.Zone.300.ElapsedProgramTime"]
+icon = "mdi:timer-outline"
+
+[features."Cooking.Hob.Status.Zone.300.ProgramProgress"]
+icon = "mdi:progress-clock"
+
+[features."Cooking.Hob.Status.Zone.300.RemainingProgramTime"]
+icon = "mdi:timer-sand"
+
+[features."Cooking.Hob.Status.Zone.340.ElapsedProgramTime"]
+icon = "mdi:timer-outline"
+
+[features."Cooking.Hob.Status.Zone.340.ProgramProgress"]
+icon = "mdi:progress-clock"
+
+[features."Cooking.Hob.Status.Zone.340.RemainingProgramTime"]
+icon = "mdi:timer-sand"
+
+[features."Cooking.Hob.Status.Zone.400.ElapsedProgramTime"]
+icon = "mdi:timer-outline"
+
+[features."Cooking.Hob.Status.Zone.400.ProgramProgress"]
+icon = "mdi:progress-clock"
+
+[features."Cooking.Hob.Status.Zone.400.RemainingProgramTime"]
+icon = "mdi:timer-sand"

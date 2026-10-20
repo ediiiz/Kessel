@@ -1,0 +1,31 @@
+name: Kessel
+version: "0.2.0" # x-release-please-version
+slug: kessel
+description: Control and monitor Home Connect appliances locally, without the cloud.
+url: https://github.com/ediiiz/Kessel
+image: ghcr.io/ediiiz/kessel-{arch}
+arch:
+  - amd64
+  - aarch64
+
+init: false
+startup: application
+boot: auto
+homeassistant: "2025.10.0"
+
+ingress: true
+ingress_port: 8099
+panel_icon: mdi:washing-machine
+panel_title: Kessel
+
+# Supervisor API access is used to discover the MQTT broker and to restart after a settings change.
+hassio_api: true
+services:
+  - mqtt:want
+
+options:
+  log_level: info
+  mqtt_autodiscovery: true
+schema:
+  log_level: list(trace|debug|info|warn|error)
+  mqtt_autodiscovery: bool

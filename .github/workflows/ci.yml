@@ -1,0 +1,133 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  rust:
+    name: Rust
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the pinned toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+
+      - uses: Swatinem/rust-cache@v2
+
+      # `--all-features` enables `tls-psk`, which builds vendored OpenSSL from source.
+      - name: Install OpenSSL build prerequisites
+        run: sudo apt-get update && sudo apt-get install -y perl make gcc
+
+      - name: cargo fmt
+        run: cargo fmt --all -- --check
+
+      - name: cargo clippy
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+      - name: cargo test
+        run: cargo test --workspace --all-features
+
+  web:
+    name: Web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.5"
+
+      - run: bun install --frozen-lockfile
+      - run: bun run --filter '*' lint
+      - run: bun run --filter '*' check
+      - run: bun run --filter web test
+      - run: bun run --filter web build
+
+  # The built daemon and its embedded UI, driven in a browser against the simulator.
+  e2e:
+    name: End-to-end
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the pinned toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install OpenSSL build prerequisites
+        run: sudo apt-get update && sudo apt-get install -y perl make gcc
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.5"
+
+      - run: bun install --frozen-lockfile
+      - run: bun run --filter web build
+
+      - name: Build the daemon and the simulator
+        run: |
+          cargo build -p server --features tls-psk
+          cargo build -p kessel-sim
+
+      - name: Install Chromium
+        working-directory: e2e
+        run: bunx playwright install --with-deps chromium
+
+      - name: Playwright
+        working-directory: e2e
+        env:
+          KESSEL_BIN: ${{ github.workspace }}/target/debug/kessel
+          KESSEL_SIM_BIN: ${{ github.workspace }}/target/debug/kessel-sim
+          KESSEL_E2E_LOGS: ${{ runner.temp }}/kessel-e2e-logs
+        run: bunx playwright test
+
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+            ${{ runner.temp }}/kessel-e2e-logs
+          retention-days: 7
+
+  python:
+    name: Capture scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: pytest
+        run: |
+          pip3 install --quiet --target scripts/.pylibs -r scripts/requirements.txt
+          PYTHONPATH="$PWD/scripts/.pylibs:$PWD/scripts" python3 -m pytest scripts/tests -q
+
+  # Builds the add-on image exactly as a release would and checks that it starts.
+  image:
+    name: Image smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: docker build --build-arg KESSEL_VERSION=0.0.0-ci --tag kessel:ci .
+
+      - name: Start and probe /api/health
+        run: .github/scripts/smoke-test.sh kessel:ci

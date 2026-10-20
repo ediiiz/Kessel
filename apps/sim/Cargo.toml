@@ -1,0 +1,44 @@
+[package]
+name = "kessel-sim"
+description = "Development-only Home Connect appliance simulator: a local TLS-PSK WebSocket peer for Kessel"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "README.md"
+publish = false
+
+[[bin]]
+name = "kessel-sim"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+base64.workspace = true
+clap.workspace = true
+futures-util.workspace = true
+hc-profile.workspace = true
+openssl.workspace = true
+parking_lot.workspace = true
+rand.workspace = true
+rand_chacha.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-openssl.workspace = true
+tokio-tungstenite.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+[dev-dependencies]
+# The end-to-end test drives Kessel's real client against the simulator.
+hc-crypto.workspace = true
+hc-proto.workspace = true
+hc-transport = { workspace = true, features = ["tls-psk"] }
+
+[lints]
+workspace = true

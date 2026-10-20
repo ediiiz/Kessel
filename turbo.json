@@ -1,0 +1,30 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+
+  // Turbo runs the interactive dev loop only; CI, builds and releases go through the `justfile`.
+  // `dev:server` and `dev:types` are root tasks (`//#`) so `apps/server` does not have to become a
+  // Bun workspace member, which would break the Docker web stage's `bun install`.
+  "ui": "tui",
+
+  "tasks": {
+    // `apps/web`'s `vite dev`. Persistent and uncached, so Turbo gives it a TUI pane.
+    "dev": {
+      "persistent": true,
+      "cache": false
+    },
+
+    // The Rust daemon. Named `dev:server` rather than `dev` so `turbo run dev` still starts the
+    // web pane alone; the root `dev` script runs everything.
+    "//#dev:server": {
+      "persistent": true,
+      "cache": false
+    },
+
+    // Regenerates `packages/api-types/src/generated/` from `apps/server/src/types.rs` on change.
+    // The generated files are committed, so review and commit the resulting diff by hand.
+    "//#dev:types": {
+      "persistent": true,
+      "cache": false
+    }
+  }
+}

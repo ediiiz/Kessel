@@ -1,0 +1,25 @@
+{
+  "name": "@kessel/api-types",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "lint": "oxfmt --check --no-error-on-unmatched-pattern src && oxlint --deny-warnings --no-error-on-unmatched-pattern src",
+    "check": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "oxfmt": "0.61.0",
+    "oxlint": "1.76.0",
+    "typescript": "6.0.3"
+  }
+}

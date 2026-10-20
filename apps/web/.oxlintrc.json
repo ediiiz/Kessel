@@ -1,0 +1,70 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "oxc", "unicorn", "import", "promise"],
+  "env": {
+    "browser": true,
+    "es2024": true
+  },
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "error",
+    "pedantic": "warn"
+  },
+  "rules": {
+    // Diagnostics belong on the trace bus and in the frame inspector, not in the browser
+    // console. A stray `console.log` is also a redaction hole.
+    "no-console": "error",
+    "no-debugger": "error",
+    "no-alert": "error",
+    "eqeqeq": "error",
+    "no-var": "error",
+    "prefer-const": "error",
+    "typescript/consistent-type-imports": "error",
+    "typescript/no-explicit-any": "error",
+    // `$lib/api-http.ts` declares the API client's three error types: "the daemon said no"
+    // (`ApiRequestError`), "we refused to send this" (`MissingTokenError`) and "nothing answered"
+    // (`DaemonUnreachableError`). They are one contract; every other file still gets one class.
+    "max-classes-per-file": ["error", { "max": 3 }],
+    // A bare `import '…css'` is how a Svelte component pulls in a global stylesheet; it has no
+    // binding to assign by construction. Every other unassigned import stays an error.
+    "import/no-unassigned-import": ["error", { "allow": ["**/*.css"] }]
+  },
+  "overrides": [
+    {
+      // A route is the composition root that wires the API client, state modules, helpers and
+      // every component on the page, so its import count tracks how many pieces the screen has.
+      // Raised only for routes, and only this rule.
+      "files": ["src/routes/**"],
+      "rules": {
+        "import/max-dependencies": ["warn", { "max": 20 }]
+      }
+    },
+    {
+      // A `describe(…)` callback is a suite, not a function: its length counts test cases, and
+      // splitting a coherent suite across files to satisfy a line count helps nobody. The `it(…)`
+      // bodies inside are the units, and they are short.
+      "files": ["**/*.test.ts"],
+      "rules": {
+        "max-lines-per-function": "off"
+      }
+    },
+    {
+      // `export {}` turns an ambient declaration file into a module, which `declare global`
+      // requires; `require-module-specifiers` would flag it as an empty export.
+      "files": ["**/*.d.ts"],
+      "rules": {
+        "unicorn/require-module-specifiers": "off"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "node_modules",
+    "build",
+    ".svelte-kit",
+    // Vendored from the shadcn-svelte registry and rewritten in place by its CLI on `add` or
+    // upgrade, so they are kept byte-identical to the registry rather than restyled.
+    "src/lib/components/ui",
+    "src/lib/hooks"
+  ]
+}

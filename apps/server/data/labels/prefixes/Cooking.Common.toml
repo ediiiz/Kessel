@@ -1,0 +1,7 @@
+# Cooking.Common: keys shared by every appliance under this prefix.
+
+[features."Cooking.Common.Event.ApplianceModuleError"]
+device_class = "problem"
+
+[features."Cooking.Common.Event.ApplianceOverheated"]
+device_class = "problem"

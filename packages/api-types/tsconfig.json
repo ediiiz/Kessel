@@ -1,0 +1,22 @@
+{
+  // `@kessel/api-types` ships TypeScript *source*, not build output: `apps/web` is the only
+  // consumer and Vite transforms it directly. So `noEmit` — there is no `dist/` and no build
+  // step to keep in sync with the generator.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "types": [],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts"]
+}

@@ -1,0 +1,40 @@
+# Real appliance profiles, keys and raw captures. Never commit anything from here.
+secrets/
+/devices.txt
+kessel.token
+
+# Local daemon state from `just run`.
+/.dev/
+/debug/
+
+# Reference checkouts and scratch work.
+reference/
+spike/
+worktrees/
+.deepwork/
+
+# Build output.
+/target
+/.cache/
+**/target/
+node_modules/
+apps/web/build/
+apps/web/.svelte-kit/
+dist/
+.turbo/
+/coverage/
+/e2e/.bin/
+/e2e/test-results/
+/e2e/playwright-report/
+*.profraw
+
+# Python.
+/.pytest_cache/
+__pycache__/
+*.pyc
+
+.DS_Store
+
+# Local agent state.
+.claude/worktrees/
+.claude/settings.local.json

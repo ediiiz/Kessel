@@ -1,0 +1,39 @@
+[package]
+name = "hc-crypto"
+description = "AES app-layer crypto core for the local Home Connect protocol (KDF, CBC + HMAC chains)"
+# A literal version rather than `version.workspace = true`: release-please's `cargo-workspace`
+# plugin rewrites this line and rejects workspace inheritance.
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme.workspace = true
+
+[dependencies]
+# psk64/iv64 are URL-safe base64, padding optional.
+base64.workspace = true
+# AES-256-CBC, one stateful cipher object per direction per connection.
+aes.workspace = true
+cbc.workspace = true
+# The KDF is two single-shot HMAC-SHA256 calls; frame tags are truncated to their leftmost 16
+# bytes, hence Mac::verify_truncated_left on receive.
+hmac.workspace = true
+# The pad's random middle comes from an injected `rand::RngCore` (an OS CSPRNG in production).
+rand.workspace = true
+serde.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+hex.workspace = true
+proptest.workspace = true
+rand_chacha.workspace = true
+serde_json.workspace = true
+serde = { workspace = true }
+
+[lints]
+workspace = true

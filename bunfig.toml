@@ -1,0 +1,8 @@
+# Bun workspace configuration. The `justfile` drives builds and CI; Bun only installs packages.
+
+[install]
+exact = true
+frozenLockfile = false
+
+[install.cache]
+disable = false

@@ -1,0 +1,99 @@
+[package]
+name = "server"
+description = "Kessel daemon: local Home Connect bridge, axum API + SSE + embedded SvelteKit SPA"
+# A literal version rather than `version.workspace = true`: release-please's `cargo-workspace`
+# plugin rewrites this line on release and rejects workspace inheritance.
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme.workspace = true
+
+[lib]
+name = "server"
+path = "src/lib.rs"
+
+[[bin]]
+name = "kessel"
+path = "src/main.rs"
+
+[features]
+default = ["embed-assets"]
+# Embeds the SPA in debug builds too; without it `rust-embed` reads the staged folder from disk
+# at run time.
+embed-assets = ["rust-embed/debug-embed"]
+# The OpenSSL TLS-PSK transport.
+tls-psk = ["hc-transport/tls-psk"]
+# The SingleKey ID profile downloader.
+downloader = ["hc-downloader/downloader"]
+
+[dependencies]
+anyhow.workspace = true
+async-trait.workspace = true
+# Decodes the profile's `psk64` (URL-safe base64, padding optional) for the TLS-PSK transport.
+base64.workspace = true
+# Declared with a literal version because default features must be off, which Cargo does not
+# allow over a workspace dependency that keeps them. The feature to drop is `tower-log`: it enables
+# `tracing/log`, which changes how `tracing::debug!` expands and pushes
+# `hc_proto::updates::apply_updates` over the cognitive-complexity limit. Diagnostics go through
+# `tracing`, not `log`. Version range matches the workspace's `"0.8"`.
+axum = { version = "0.8", default-features = false, features = [
+    "http1",
+    "json",
+    "form",
+    "query",
+    "tokio",
+    "tracing",
+    "matched-path",
+    "original-uri",
+] }
+futures-util.workspace = true
+hc-core.workspace = true
+hc-crypto.workspace = true
+hc-downloader.workspace = true
+hc-profile.workspace = true
+hc-proto.workspace = true
+hc-transport.workspace = true
+http.workspace = true
+# The Supervisor client in `hassio.rs` (`http-body-util` collects the response body). Not
+# `reqwest`: the workspace declares it with vendored OpenSSL, which would make every default build
+# compile OpenSSL to talk plain HTTP to `http://supervisor`. axum already links hyper.
+http-body-util.workspace = true
+hyper = { workspace = true, features = ["client", "http1"] }
+hyper-util.workspace = true
+parking_lot.workspace = true
+rand.workspace = true
+# Building the `AsyncClient` and `EventLoop` that `hc_core::mqtt::RumqttcClient` wraps needs the
+# crate directly. The workspace declaration's `default-features = false` (no `use-rustls`) applies.
+rumqttc.workspace = true
+# `debug-embed` is reached through the `embed-assets` feature so it is observable at run time as
+# `spa::ASSETS_ARE_EMBEDDED`. `interpolate-folder-path` lets the derive point at `$OUT_DIR/spa`,
+# the staging directory `build.rs` fills.
+rust-embed = { workspace = true, features = ["interpolate-folder-path"] }
+serde.workspace = true
+serde_json.workspace = true
+subtle.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-stream.workspace = true
+# `labels.rs` parses the embedded name tables in `data/labels/` once, on first use.
+toml.workspace = true
+schemars.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+ts-rs.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+# `tests/common/mod.rs` reads a fixture's synthetic `haId` out of the archive, so assertions that
+# a response does not contain it need not hardcode one.
+zip.workspace = true
+# `tests/common/mod.rs` drives the router in-process through `tower::ServiceExt::oneshot`.
+tower.workspace = true
+
+[lints]
+workspace = true

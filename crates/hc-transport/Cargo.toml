@@ -1,0 +1,70 @@
+[package]
+name = "hc-transport"
+description = "Local Home Connect transports: AES over ws:// and TLS-PSK over wss://"
+# A literal version rather than `version.workspace = true`: release-please's `cargo-workspace`
+# plugin rewrites this line on release and rejects workspace inheritance.
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme.workspace = true
+
+[features]
+default = []
+# OpenSSL TLS-PSK transport, the project's only C dependency. With the feature off no OpenSSL is
+# compiled or linked. Turning it on builds vendored OpenSSL (slow on the first build).
+tls-psk = ["dep:openssl", "dep:openssl-sys", "dep:tokio-openssl"]
+
+[dependencies]
+# The protocol layer (pure FSM + message types) and the AES app-layer crypto core.
+hc-proto = { workspace = true }
+hc-crypto = { workspace = true }
+
+# Async runtime + the WebSocket client. tokio-tungstenite's TLS features stay off: the AES path is
+# plain ws:// and links no TLS stack.
+tokio = { workspace = true }
+tokio-tungstenite = { workspace = true }
+futures-util = { workspace = true }
+async-trait = { workspace = true }
+
+# CSPRNG for the production pad source.
+rand = { workspace = true }
+
+tracing = { workspace = true }
+thiserror = { workspace = true }
+
+# --- TLS-PSK transport (feature = "tls-psk") ------------------------------------------------------
+# Optional: the AES `ws://` path links no OpenSSL. The vendored OpenSSL is linked statically, so
+# there is no system libssl dependency.
+openssl = { workspace = true, optional = true }
+openssl-sys = { workspace = true, optional = true }
+# Async `SslStream`, so `tokio-tungstenite` can WS-upgrade over the TLS-PSK tunnel and reuse the
+# generic `WsSink<S>`/`WsStream<S>`.
+tokio-openssl = { workspace = true, optional = true }
+
+[dev-dependencies]
+# The in-process fake device replays fixtures/aes/hob-session.json (hex wire bytes, JSON frames)
+# and validates the tx chain with a mirror hc-crypto Opener.
+tokio = { workspace = true }
+hex = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+# The fake device implements FrameSink/FrameStream, which are `#[async_trait]`.
+async-trait = { workspace = true }
+# A mirror Opener (appliance role) validates the client's tx chain in the concurrency test.
+hc-crypto = { workspace = true }
+hc-proto = { workspace = true }
+# The fake session uses an OsRng pad source (byte-exactness of tx is not needed in these tests).
+rand = { workspace = true }
+# The (ignored) TLS-PSK live tests decode the profile psk64 to raw bytes.
+base64 = { workspace = true }
+# The frame-event tests install a capturing `tracing` layer that renders fields the way
+# `hc_core::trace::TraceBusLayer` does. hc-core itself would be a dependency cycle.
+tracing-subscriber = { workspace = true }
+
+[lints]
+workspace = true

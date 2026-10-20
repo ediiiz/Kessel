@@ -1,0 +1,197 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Kessel label catalogue",
+  "description": "A contributed catalogue file: names and presentation for an appliance's features and\nprogrammes.",
+  "type": "object",
+  "properties": {
+    "features": {
+      "description": "Keyed by the full dotted feature key, quoted: `[features.\"Dishcare.Dishwasher.Setting.TimeLight\"]`.",
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/Entry"
+      }
+    },
+    "programs": {
+      "description": "Keyed by the full dotted programme key: `[programs.\"Dishcare.Dishwasher.Program.Eco50\"]`.",
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/Entry"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "Entry": {
+      "description": "How one feature or programme is named and shown. Every field is optional, and each one left out\ncomes from the next layer (the prefix file under a model file).",
+      "type": "object",
+      "properties": {
+        "label": {
+          "description": "What the web UI and Home Assistant call it. Leave out to keep the next layer's name, or the\nidentifier re-spelled (`TimeLight` → `Time light`).",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "description": {
+          "description": "Help text shown beside the name. Describe what you have observed; omit rather than guess.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "values": {
+          "description": "Names for the enumeration's members, keyed by the raw member exactly as the appliance\ndeclares it (`ColdWater = \"Cold water\"`). A write still sends the raw member.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {}
+        },
+        "enabled_by_default": {
+          "description": "Whether Home Assistant enables the entity when it is discovered. Leave out to let the\nbuilt-in rule decide, which enables only the handful of features an appliance is for.",
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null
+        },
+        "entity_category": {
+          "description": "Which section of Home Assistant's device page it lands in. `primary` is the prominent one\nat the top.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CategoryWord"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "icon": {
+          "description": "Home Assistant's icon for the entity: any Material Design Icon, `mdi:<name>`\n(<https://pictogrammers.com/library/mdi/>). Leave out of a binary sensor with a\n`device_class`, which draws a different icon per state.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^mdi:[a-z0-9-]+$",
+          "default": null
+        },
+        "device_class": {
+          "description": "Home Assistant's `device_class`, from the vocabulary of the entity's platform; `problem`\nmakes a binary sensor a fault. A class the platform lacks fails the tests.",
+          "type": "string",
+          "enum": [
+            "absolute_humidity",
+            "apparent_power",
+            "aqi",
+            "area",
+            "atmospheric_pressure",
+            "battery",
+            "battery_charging",
+            "blood_glucose_concentration",
+            "carbon_dioxide",
+            "carbon_monoxide",
+            "cold",
+            "conductivity",
+            "connectivity",
+            "current",
+            "data_rate",
+            "data_size",
+            "date",
+            "distance",
+            "door",
+            "duration",
+            "energy",
+            "energy_distance",
+            "energy_storage",
+            "enum",
+            "frequency",
+            "garage_door",
+            "gas",
+            "heat",
+            "humidity",
+            "identify",
+            "illuminance",
+            "irradiance",
+            "light",
+            "lock",
+            "moisture",
+            "monetary",
+            "motion",
+            "moving",
+            "nitrogen_dioxide",
+            "nitrogen_monoxide",
+            "nitrous_oxide",
+            "occupancy",
+            "opening",
+            "outlet",
+            "ozone",
+            "ph",
+            "plug",
+            "pm1",
+            "pm10",
+            "pm25",
+            "pm4",
+            "power",
+            "power_factor",
+            "precipitation",
+            "precipitation_intensity",
+            "presence",
+            "pressure",
+            "problem",
+            "reactive_energy",
+            "reactive_power",
+            "restart",
+            "running",
+            "safety",
+            "signal_strength",
+            "smoke",
+            "sound",
+            "sound_pressure",
+            "speed",
+            "sulphur_dioxide",
+            "switch",
+            "tamper",
+            "temperature",
+            "timestamp",
+            "update",
+            "vibration",
+            "volatile_organic_compounds",
+            "volatile_organic_compounds_parts",
+            "voltage",
+            "volume",
+            "volume_flow_rate",
+            "volume_storage",
+            "water",
+            "weight",
+            "wind_direction",
+            "wind_speed",
+            "window"
+          ],
+          "default": null
+        }
+      },
+      "additionalProperties": false
+    },
+    "CategoryWord": {
+      "description": "The word a contributed `entity_category` may use.\n\nA closed enum so a mistyped value fails the parse instead of silently meaning \"no override\".",
+      "oneOf": [
+        {
+          "description": "The prominent section at the top of the device page.",
+          "type": "string",
+          "const": "primary"
+        },
+        {
+          "description": "Home Assistant's Configuration section.",
+          "type": "string",
+          "const": "config"
+        },
+        {
+          "description": "Home Assistant's Diagnostic section.",
+          "type": "string",
+          "const": "diagnostic"
+        }
+      ]
+    }
+  }
+}

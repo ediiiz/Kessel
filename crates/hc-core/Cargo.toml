@@ -1,0 +1,42 @@
+[package]
+name = "hc-core"
+description = "Home Connect device supervisor, state store, generic feature mapping and trace bus"
+# A literal version, not `version.workspace = true`: release-please's `cargo-workspace` plugin
+# rewrites this line on release and rejects workspace inheritance.
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme.workspace = true
+
+[dependencies]
+hc-proto.workspace = true
+hc-transport.workspace = true
+hc-profile.workspace = true
+hc-crypto.workspace = true
+async-trait.workspace = true
+# rumqttc talks to the MQTT broker, not the appliance. Its default features pull in rustls next to
+# hc-transport's OpenSSL; a member cannot override a workspace dependency's `default-features`, so
+# that has to change in the root manifest.
+rumqttc = { workspace = true }
+parking_lot.workspace = true
+rand.workspace = true
+rand_chacha.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["sync", "time", "rt", "macros"] }
+tracing.workspace = true
+tracing-core.workspace = true
+tracing-subscriber.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "test-util", "time"] }
+serde_json.workspace = true
+
+[lints]
+workspace = true
