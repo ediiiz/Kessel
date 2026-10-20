@@ -106,8 +106,7 @@ async fn read_routes_are_open_on_loopback() {
 ///
 /// `offline` alone cannot tell a powered-off appliance from one that is answering every dial and
 /// rejecting the handshake, and the two want opposite responses — the second will not fix itself.
-/// The hob spent an evening in the second state while the dashboard showed the first; the reason was
-/// on the trace bus the whole time, at `debug` level, where nobody looks.
+/// Without a reason here it is only on the trace bus at `debug` level, where nobody looks.
 #[tokio::test]
 async fn an_offline_device_reports_why() {
     // Host-redacted at construction, which is the shape `crate::live_transport` produces.

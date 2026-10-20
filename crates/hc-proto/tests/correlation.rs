@@ -44,7 +44,7 @@ fn correlation_resolves_by_msgid() {
     correlator.register(779, "/ro/allDescriptionChanges", 0);
     assert_eq!(correlator.len(), 5);
 
-    // Deliver OUT OF ARRIVAL ORDER: 778 first. A FIFO matcher would return 774's resource.
+    // Deliver out of arrival order: 778 first. A FIFO matcher would return 774's resource.
     assert_eq!(
         correlator.resolve(778).as_deref(),
         Some("/ro/allMandatoryValues"),

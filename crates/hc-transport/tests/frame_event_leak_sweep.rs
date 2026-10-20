@@ -185,7 +185,7 @@ async fn frame_events_emit_no_secret_values() {
         needles.len()
     );
 
-    // NON-VACUITY of the SWEEP: plant the sentinel in a THROWAWAY copy, never in the real surface,
+    // The sweep is not vacuous: plant the sentinel in a throwaway copy, never in the real surface,
     // and prove the same matcher finds it there and not here.
     let mut throwaway = surface.clone();
     throwaway.push(format!("wire_head_hex={SENTINEL}"));

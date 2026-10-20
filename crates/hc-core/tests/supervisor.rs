@@ -60,7 +60,7 @@ async fn task_per_device_isolates_failures() {
         Arc::clone(&bus),
         Arc::clone(&shadow),
     );
-    // A device whose session PANICS: its task must die alone.
+    // A device whose session panics: its task must die alone.
     supervisor.spawn(
         FakeLink::new(vec![Attempt::Connect {
             initial: Vec::new(),

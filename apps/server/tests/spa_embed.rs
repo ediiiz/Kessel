@@ -77,9 +77,7 @@ async fn assert_every_asset_is_served_from_the_binary(names: &[String]) {
             reply.body
         );
         let embedded = spa::Assets::get(name).expect("the name came from the embed");
-        // `reply.bytes`, not `reply.body`: the text view is lossy, and the SPA now embeds fonts.
-        // Comparing the lossy string turned every non-UTF-8 byte into U+FFFD and failed here while
-        // the served bytes were in fact identical.
+        // `reply.bytes`, not `reply.body`: the text view is lossy, and embedded fonts are not UTF-8.
         assert_eq!(
             reply.bytes,
             embedded.data.as_ref(),

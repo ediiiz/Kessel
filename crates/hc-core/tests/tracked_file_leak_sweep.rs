@@ -187,7 +187,7 @@ fn an_unset_raw_profiles_gate_announces_its_skip() {
 
 /// A synthetic sentinel, not an identifier, present in this tracked file so the negative control
 /// below has something to find.
-const NEGATIVE_CONTROL_SENTINEL: &str = "kessel-int-e-planted-needle-sentinel";
+const NEGATIVE_CONTROL_SENTINEL: &str = "kessel-planted-needle-sentinel";
 
 /// Negative control: the sweep catches a value planted in a tracked file and reports it as a
 /// violation, using the same `scan_tracked_tree` as the real sweep. This is the sweep's
@@ -206,7 +206,7 @@ fn a_planted_needle_is_reported_as_a_violation() {
     );
     assert!(
         hits.iter()
-            .any(|hit| hit.file.ends_with("l10_tracked_file_sweep.rs")),
+            .any(|hit| hit.file.ends_with("tracked_file_leak_sweep.rs")),
         "the planted sentinel was found, but not in this file, where it demonstrably is: {:?}",
         hits.iter().map(|hit| &hit.file).collect::<Vec<_>>()
     );

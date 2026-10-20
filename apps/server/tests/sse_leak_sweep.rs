@@ -76,7 +76,7 @@ fn emit_value_events(bus: &hc_core::trace::TraceBus) {
 
 /// A synthetic value injected into a **throwaway copy** of the captured surface to prove the sweep
 /// is non-vacuous. Not a real identifier, so it is safe to name here.
-const SENTINEL: &str = "L10-SSE-SWEEP-SENTINEL-VALUE";
+const SENTINEL: &str = "SSE-SWEEP-SENTINEL-VALUE";
 
 // ================================================================================================
 // Needles — every one loaded at runtime.

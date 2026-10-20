@@ -99,7 +99,7 @@ fn squeeze(rendered: &str) -> String {
 /// No identifier is reachable through the `Debug` of `IncomingMessage`, `Handshake` or `Driver`, in
 /// either format.
 #[test]
-fn public_debug_never_renders_an_l10_identifier() {
+fn public_debug_never_renders_an_appliance_identifier() {
     let sentinels = [DEVICE_ID, MAC, SERIAL];
 
     let incoming = sentinel_incoming();

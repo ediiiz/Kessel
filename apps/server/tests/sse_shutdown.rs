@@ -1,7 +1,8 @@
 //! An open event stream ends when the daemon begins shutting down.
 //!
 //! The graceful shutdown waits for in-flight responses, and an SSE body never ends on its own, so
-//! one open browser tab used to hold a stop or restart of the add-on until the Supervisor killed it.
+//! without this one open browser tab holds a stop or restart of the add-on until the Supervisor
+//! kills it.
 
 #![cfg_attr(
     test,

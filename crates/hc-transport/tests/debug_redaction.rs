@@ -30,7 +30,7 @@ const SENTINELS: &[&str] = &[
 ];
 
 #[tokio::test]
-async fn session_debug_never_renders_an_l10_identifier() {
+async fn session_debug_never_renders_an_appliance_identifier() {
     // Non-vacuity: these identifiers really are in the corpus bodies.
     let raw = corpus_raw();
     for sentinel in SENTINELS {

@@ -155,7 +155,7 @@ async fn a_session_yields_its_send_handle_only_once() {
     );
     drop(first);
 
-    // PHASE 3: `into_sender` is a third route to a handle and consumes the session, so it can only
+    // `into_sender` is a third route to a handle and consumes the session, so it can only
     // run after a sealing route. If it still hands one out, the connection has two send handles and
     // one of them bypasses `hc_core::write::GuardedWriter::write`.
     let raw = session.into_sender();

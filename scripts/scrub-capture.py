@@ -532,7 +532,7 @@ def scrub_capture(
 # ---------------------------------------------------------------------------------------
 
 
-L10_KINDS = frozenset({"identifier", "key-material"})
+IDENTIFIER_KINDS = frozenset({"identifier", "key-material"})
 
 
 def base_table(secrets_dir: Path, profiles: list[dict]) -> list[Substitution]:
@@ -600,11 +600,11 @@ def _cmd_audit(args: argparse.Namespace) -> int:
             continue
         scanned += 1
         hits = [sub for sub in subs if sub.real and sub.real in blob]
-        l10 = [sub for sub in hits if sub.kind in L10_KINDS]
-        other = [sub for sub in hits if sub.kind not in L10_KINDS]
-        if l10:
+        leaks = [sub for sub in hits if sub.kind in IDENTIFIER_KINDS]
+        other = [sub for sub in hits if sub.kind not in IDENTIFIER_KINDS]
+        if leaks:
             failures += 1
-            print(f"LEAK {path}: {sorted({sub.role for sub in l10})}")
+            print(f"LEAK {path}: {sorted({sub.role for sub in leaks})}")
         if other:
             notes += 1
             print(f"note {path}: other secret-derived value(s) {sorted({s.role for s in other})}")

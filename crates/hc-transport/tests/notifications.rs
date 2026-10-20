@@ -107,7 +107,7 @@ async fn ro_value_responses_are_retained_after_the_handshake() {
         "every retained message must be a /ro resource — that is the whole filter; got {resources:?}"
     );
 
-    // And the BODY is what was being thrown away, so a body-less retention would be no fix at all.
+    // The body must be retained too, not just the resource.
     assert!(
         retained
             .iter()

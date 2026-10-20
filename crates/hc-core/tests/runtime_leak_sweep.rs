@@ -19,7 +19,7 @@
 //!   logged skip.
 //!
 //! A leak is reported by needle source and surface name only, never by value. SSE frames are swept
-//! separately in `apps/server/tests/l10_sse_sweep.rs`.
+//! separately in `apps/server/tests/sse_leak_sweep.rs`.
 
 #![cfg_attr(
     test,
@@ -334,7 +334,7 @@ fn captured_surfaces(bus: &TraceBus, broker: &FakeBroker) -> Vec<Surface> {
         },
     ];
 
-    // SSE is swept by `apps/server/tests/l10_sse_sweep.rs`; that crate depends on this one.
+    // SSE is swept by `apps/server/tests/sse_leak_sweep.rs`; that crate depends on this one.
 
     surfaces
 }
@@ -514,7 +514,7 @@ fn raw_profiles_dir() -> Option<PathBuf> {
 // =============================================================================================
 
 /// A synthetic value injected into a throwaway surface copy to prove the sweep is non-vacuous.
-const SENTINEL: &str = "L10-SWEEP-SENTINEL-VALUE";
+const SENTINEL: &str = "SWEEP-SENTINEL-VALUE";
 
 /// Drives the full session (supervisor over the corpus handshake, plus the MQTT bridge) and
 /// returns the captured surfaces plus the bus (kept alive for the trace surface).
@@ -649,8 +649,8 @@ fn full_session_emits_no_secret_values() {
         needles.len()
     );
 
-    // NON-VACUITY: prove the capture + sweep can actually catch a leak. Inject a sentinel into a
-    // THROWAWAY copy of a real surface, add it as a needle, and confirm the sweep flags it — then
+    // Non-vacuity: prove the capture + sweep can actually catch a leak. Inject a sentinel into a
+    // throwaway copy of a real surface, add it as a needle, and confirm the sweep flags it — then
     // confirm the sentinel exists ONLY in the throwaway, never in the real capture.
     let mut throwaway = surfaces.clone();
     throwaway
@@ -673,7 +673,7 @@ fn full_session_emits_no_secret_values() {
         "the sentinel must exist only in the throwaway copy, never in the real capture"
     );
 
-    // THE SWEEP: zero occurrences of any needle across the whole captured surface.
+    // The sweep: zero occurrences of any needle across the whole captured surface.
     let leaks = find_leaks(&surfaces, &needles);
     assert!(
         leaks.is_empty(),

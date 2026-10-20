@@ -21,7 +21,7 @@ hc-crypto.workspace = true
 async-trait.workspace = true
 # rumqttc talks to the MQTT broker, not the appliance. Its default features pull in rustls next to
 # hc-transport's OpenSSL; a member cannot override a workspace dependency's `default-features`, so
-# that has to change in the root manifest.
+# it is turned off in the root manifest.
 rumqttc = { workspace = true }
 parking_lot.workspace = true
 rand.workspace = true
