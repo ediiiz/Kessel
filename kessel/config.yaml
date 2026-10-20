@@ -1,5 +1,5 @@
 name: Kessel
-version: "0.2.0" # x-release-please-version
+version: "0.2.1" # x-release-please-version
 slug: kessel
 description: Control and monitor Home Connect appliances locally, without the cloud.
 url: https://github.com/ediiiz/Kessel

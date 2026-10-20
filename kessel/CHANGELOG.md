@@ -1,6 +1,16 @@
 # Changelog
 
-## [0.2.0](https://github.com/ediiiz/Kessel/compare/v0.1.0...v0.2.0) (2026-10-20)
+## [0.2.1](https://github.com/ediiiz/Kessel/compare/v0.2.0...v0.2.1) (2026-10-20)
+
+### Bug Fixes
+
+* Switching pages in the add-on no longer shows "404: Not Found". Links now stay inside Home Assistant's ingress path, and pages change without a reload.
+
+### Improvements
+
+* **Add appliance** explains where the profile ZIP comes from, with a link to the Home Connect Profile Downloader.
+
+## 0.2.0 (2026-10-20)
 
 The first release of Kessel: local control of Home Connect appliances (Bosch, Siemens, Neff and other BSH brands) from Home Assistant, with no cloud in the loop.
 
