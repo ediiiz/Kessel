@@ -54,7 +54,7 @@
   </div>
 {:else}
   <ul
-    class="no-scrollbar scroll-fade-x sm:scroll-fade-none -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-3"
+    class="no-scrollbar scroll-fade-x sm:scroll-fade-none -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:scroll-px-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-3"
   >
     {#each devices as device, index (device.slug)}
       {@const look = connectionLook(device.connection_state)}

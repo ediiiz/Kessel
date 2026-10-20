@@ -23,7 +23,7 @@
       <span class="text-muted-foreground text-sm">{programs.length}</span>
     </div>
     <ul
-      class="no-scrollbar scroll-fade-x md:scroll-fade-none -mx-4 flex snap-x gap-2.5 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:px-0"
+      class="no-scrollbar scroll-fade-x md:scroll-fade-none -mx-4 flex snap-x scroll-px-4 gap-2.5 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:scroll-px-0 md:px-0"
     >
       {#each programs as program (program.uid)}
         <li
