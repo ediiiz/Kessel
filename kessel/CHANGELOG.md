@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.0](https://github.com/ediiiz/Kessel/compare/v0.2.1...v0.3.0) (2026-10-20)
+
+
+### Features
+
+* **labels:** name appliance languages in their own language ([a92bdd9](https://github.com/ediiiz/Kessel/commit/a92bdd98dcf29ac2024f3e344ad13dce85bb0383))
+
+
+### Bug Fixes
+
+* **mqtt:** keep entity states when the appliance only revises a description ([775a924](https://github.com/ediiiz/Kessel/commit/775a9243855a0846dcd2688d986a5ef372b7da70))
+* **server:** stop promptly while the web UI is open ([ec4df60](https://github.com/ediiiz/Kessel/commit/ec4df601ea112487223232822563f7c0cccf8061))
+
 ## [0.2.1](https://github.com/ediiiz/Kessel/compare/v0.2.0...v0.2.1) (2026-10-20)
 
 ### Bug Fixes
