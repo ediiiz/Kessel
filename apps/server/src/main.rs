@@ -137,12 +137,16 @@ async fn main() -> anyhow::Result<()> {
              the configuration was refused — check the port"
         );
     }
+    let stopping = state.clone();
     axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal())
+        .with_graceful_shutdown(async move {
+            shutdown_signal().await;
+            // At the signal, not after the drain: it ends the event streams the drain waits on, and
+            // tells the device tasks to close their sessions. Appliances track clients in a bounded
+            // table, so an abandoned session is held until the appliance notices.
+            stopping.begin_shutdown();
+        })
         .await?;
-    // The HTTP server has stopped. Tell the device tasks to close their sessions: appliances track
-    // clients in a bounded table, so an abandoned session is held until the appliance notices.
-    state.begin_shutdown();
     close_device_sessions().await;
     Ok(())
 }
@@ -215,7 +219,8 @@ async fn shutdown_signal() {
             Err(error) => {
                 tracing::error!(
                     %error,
-                    "the SIGTERM handler could not be installed; a service stop will terminate this                      process rather than shutting it down"
+                    "the SIGTERM handler could not be installed; a service stop will terminate this \
+                     process rather than shutting it down"
                 );
                 std::future::pending::<()>().await;
             }
@@ -231,7 +236,8 @@ async fn shutdown_signal() {
     };
     tracing::info!(
         signal,
-        "shutting down: no new connections are accepted, in-flight requests are finished, and the          appliance sessions close with the process"
+        "shutting down: no new connections are accepted, open requests are finished and the appliance \
+         sessions are closed"
     );
 }
 

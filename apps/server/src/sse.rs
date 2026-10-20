@@ -149,9 +149,19 @@ pub async fn events(State(state): State<AppState>, Query(query): Query<EventsQue
         Ok(filter) => filter,
         Err(failure) => return failure.into_response(),
     };
+    // Ends with the process: an open stream would otherwise hold the graceful shutdown's drain open
+    // until the Supervisor kills the add-on.
+    let mut shutdown = state.shutdown_signal();
+    let stopping = async move {
+        // A dropped sender means nothing will ever signal shutdown, not that it has begun.
+        if shutdown.wait_for(|stopping| *stopping).await.is_err() {
+            std::future::pending::<()>().await;
+        }
+    };
     let stream = frames(state.bus())
         .filter(move |frame| std::future::ready(filter.admits(frame)))
-        .map(|frame| Ok::<Event, Infallible>(event_for(&frame)));
+        .map(|frame| Ok::<Event, Infallible>(event_for(&frame)))
+        .take_until(stopping);
     let sse = Sse::new(stream)
         .keep_alive(KeepAlive::new().interval(std::time::Duration::from_secs(KEEP_ALIVE_SECS)));
     (
