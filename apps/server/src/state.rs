@@ -633,13 +633,13 @@ impl AppState {
         &self.devices
     }
 
-    /// A receiver every device task selects on, so shutdown interrupts a live session.
+    /// A receiver every device task and event stream selects on, so shutdown interrupts them.
     #[must_use]
     pub fn shutdown_signal(&self) -> tokio::sync::watch::Receiver<bool> {
         self.shutdown.subscribe()
     }
 
-    /// Tells every device task to close its session and stop.
+    /// Tells every device task to close its session and stop, and ends the open event streams.
     ///
     /// Idempotent, and safe with no tasks running.
     pub fn begin_shutdown(&self) {
