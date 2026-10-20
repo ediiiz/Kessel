@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/ediiiz/Kessel/compare/v0.2.0...v0.2.1) (2026-10-20)
+
+
+### Bug Fixes
+
+* **web:** page links 404 under Home Assistant ingress; add ZIP how-to ([#1](https://github.com/ediiiz/Kessel/issues/1)) ([331f139](https://github.com/ediiiz/Kessel/commit/331f1393a7ab69a06dca083d5882054e588a3185))
+
 ## [0.2.0](https://github.com/ediiiz/Kessel/compare/v0.1.0...v0.2.0) (2026-10-20)
 
 The first release of Kessel: local control of Home Connect appliances (Bosch, Siemens, Neff and other BSH brands) from Home Assistant, with no cloud in the loop.
