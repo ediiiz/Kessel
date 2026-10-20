@@ -39,7 +39,14 @@ jobs:
           set -euo pipefail
           stable="$(jq -r '."."' .release-please-manifest.json)"
           IFS=. read -r major minor patch <<< "$stable"
-          version="${major}.${minor}.$((patch + 1))-beta.${GITHUB_RUN_NUMBER}"
+          base="${major}.${minor}.$((patch + 1))"
+          # Continue from what the beta add-on declares on main now, not from the run number, so the
+          # version only ever rises: Home Assistant offers no update to a lower one.
+          git fetch --quiet --depth=1 origin main
+          current="$(git show FETCH_HEAD:kessel-beta/config.yaml | sed -nE 's/^version:[[:space:]]*"?([^"]+)"?.*$/\1/p')"
+          n=0
+          if [[ "$current" == "${base}-beta."* ]]; then n="${current##*-beta.}"; fi
+          version="${base}-beta.$((n + 1))"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           echo "beta version: ${version}"
