@@ -163,13 +163,15 @@
       </div>
     </div>
   {:else}
-    <div class="flex flex-col gap-7">
+    <!-- `isolate` keeps the glow's `-z-10` inside this column: behind the hero and the cards, not
+         behind the page. -->
+    <div class="isolate flex flex-col gap-7">
       <div in:enter|global={{ index: 0 }}>
         <DeviceHeader {device} {slug} {loading} onreload={() => void load(slug)} />
       </div>
 
       <div
-        class="pointer-events-none absolute inset-x-0 top-64 h-[60rem] overflow-hidden [mask-image:linear-gradient(to_bottom,black,transparent)]"
+        class="pointer-events-none absolute inset-x-0 top-64 -z-10 h-[60rem] overflow-hidden [mask-image:linear-gradient(to_bottom,black,transparent)]"
         aria-hidden="true"
         style:--hue={roleHue(device?.role ?? '')}
       >

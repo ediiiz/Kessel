@@ -175,6 +175,8 @@ export function roleHue(role: string): number {
 export const OVERVIEW_KEYS: readonly {
   readonly suffix: string;
   readonly label: string;
+  /** Shown instead of the value when it is `0`, where zero means the feature is not in use. */
+  readonly zero?: string;
 }[] = [
   { suffix: 'Setting.PowerState', label: 'Power' },
   { suffix: 'Status.OperationState', label: 'Operation' },
@@ -182,7 +184,7 @@ export const OVERVIEW_KEYS: readonly {
   { suffix: 'Root.SelectedProgram', label: 'Selected programme' },
   { suffix: 'Option.ProgramProgress', label: 'Progress' },
   { suffix: 'Option.RemainingProgramTime', label: 'Time remaining' },
-  { suffix: 'Option.StartInRelative', label: 'Starts in' },
+  { suffix: 'Option.StartInRelative', label: 'Delayed start', zero: 'Off' },
   { suffix: 'Status.DoorState', label: 'Door' },
   { suffix: 'Status.RemoteControlStartAllowed', label: 'Remote start' },
   { suffix: 'Status.RemoteControlActive', label: 'Remote control' },

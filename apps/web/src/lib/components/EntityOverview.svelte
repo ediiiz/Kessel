@@ -42,7 +42,7 @@
    * has no power switch".
    */
   const tiles = $derived(
-    OVERVIEW_KEYS.flatMap(({ suffix, label }): Tile[] => {
+    OVERVIEW_KEYS.flatMap(({ suffix, label, zero }): Tile[] => {
       if (exclude.includes(suffix)) {
         return [];
       }
@@ -55,7 +55,10 @@
         {
           label,
           key: match.feature_key ?? '',
-          value: displayValue(match.feature_key, raw, programs),
+          value:
+            zero !== undefined && raw === '0'
+              ? zero
+              : displayValue(match.feature_key, raw, programs),
           // Read separately from the label because this one drives a bar as well as a string, and the
           // bar must not appear for a value that is not a percentage. `progressPercent` returns
           // `null` for anything outside 0–100, which is also what `displayValue` keys off.

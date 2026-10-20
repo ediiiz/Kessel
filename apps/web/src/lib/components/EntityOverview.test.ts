@@ -46,3 +46,29 @@ describe('the_overview_names_the_selected_programme', () => {
     view.destroy();
   });
 });
+
+describe('a_zero_delayed_start_reads_as_off', () => {
+  const delay = (value: string): EntityDescriptor =>
+    entity({
+      uid: 2,
+      feature_key: 'BSH.Common.Option.StartInRelative',
+      feature_path: 'BSH/Common/Option/StartInRelative',
+      value,
+    });
+
+  it('shows Off rather than 0 min when no delay is set', () => {
+    const view = render(EntityOverview, { entities: [delay('0')] });
+
+    const text = view.query('entity-overview')?.textContent ?? '';
+    expect(text).toContain('Delayed start');
+    expect(text).toContain('Off');
+    view.destroy();
+  });
+
+  it('shows the delay when one is set', () => {
+    const view = render(EntityOverview, { entities: [delay('3600')] });
+
+    expect(view.query('entity-overview')?.textContent).not.toContain('Off');
+    view.destroy();
+  });
+});
