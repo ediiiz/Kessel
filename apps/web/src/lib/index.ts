@@ -8,29 +8,15 @@ export const APP_NAME = 'Kessel';
 /**
  * Client-side route IDs, one per page under `src/routes/`.
  *
- * These are route IDs, not hrefs: always pass one through `resolve()` from `$app/paths`. The app
- * is hash-routed to survive the Home Assistant ingress prefix (see `svelte.config.js`), so the
- * href for `/inspector` is `<runtime base>#/inspector`, and only `resolve()` knows the base.
+ * These are route IDs, not hrefs: always pass one through `link()` from `$lib/links`. The app is
+ * hash-routed to survive the Home Assistant ingress prefix (see `svelte.config.js`), so the href
+ * for `/inspector` is `<runtime base>/#/inspector`:
  *
- * Under ingress, `base` is the document's directory without its trailing slash, so SvelteKit
- * classifies every in-app link as external and navigation becomes a full page load:
+ *   doc = http://127.0.0.1:8099/                       href = '#/inspector'
+ *   doc = http://ha.local/api/hassio_ingress/<token>/  href = '/api/hassio_ingress/<token>/#/inspector'
  *
- *   doc = http://127.0.0.1:8099/
- *     base = ''                              href = '#/inspector'          → client-side navigation
- *   doc = http://ha.local/api/hassio_ingress/<token>/
- *     base = '/api/hassio_ingress/<token>'   href = '…/<token>#/inspector' → full page load
- *
- * This is inherent to SvelteKit's base expression and is accepted. `resolve()` is still required
- * because it keeps the href inside the prefix; a bare `href="/inspector"` points at the host root
- * and leaves the add-on entirely.
- *
- * The full page load lands on the right route only because:
- *   1. the browser requests `…/api/hassio_ingress/<token>` (no trailing slash);
- *   2. the server 308-redirects to the same path with a trailing slash, built from
- *      `X-Ingress-Path` (see `svelte.config.js`);
- *   3. the browser re-applies the `#/inspector` fragment across the redirect;
- *   4. the shell boots at `…/<token>/` and the hash router reads the fragment.
- * If any step breaks, navigation silently lands on Home.
+ * Both are the document's own path, so navigation stays client-side. A bare `href="/inspector"`
+ * points at the host root and leaves the add-on entirely.
  */
 export const ROUTES = {
   home: '/',

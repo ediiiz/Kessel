@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import { page } from '$app/state';
-  import { resolve } from '$app/paths';
+  import { link } from '$lib/links';
   import Logo from '$lib/components/Logo.svelte';
   import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
   import * as Sidebar from '$lib/components/ui/sidebar';
@@ -87,7 +87,7 @@
         <Sidebar.MenuItem>
           <Sidebar.MenuButton size="lg" class="gap-3">
             {#snippet child({ props })}
-              <a href={resolve(ROUTES.home)} {...props}>
+              <a href={link(ROUTES.home)} {...props}>
                 <Logo class="size-7" />
                 <span class="text-base font-semibold tracking-tight">{APP_NAME}</span>
               </a>
@@ -109,7 +109,7 @@
                 <Sidebar.MenuButton isActive={active} tooltipContent={destination.label}>
                   {#snippet child({ props })}
                     <a
-                      href={resolve(destination.id)}
+                      href={link(destination.id)}
                       aria-current={active ? 'page' : undefined}
                       {...props}
                     >
@@ -174,7 +174,7 @@
         bare && 'hidden',
       )}
     >
-      <a href={resolve(ROUTES.home)} class="flex items-center gap-2 font-semibold tracking-tight">
+      <a href={link(ROUTES.home)} class="flex items-center gap-2 font-semibold tracking-tight">
         <Logo class="size-6" />
         {APP_NAME}
       </a>
@@ -241,7 +241,7 @@
       {#each DESTINATIONS as destination (destination.id)}
         {@const active = isActive(destination.id)}
         <a
-          href={resolve(destination.id)}
+          href={link(destination.id)}
           aria-current={active ? 'page' : undefined}
           class={cn(
             'press flex flex-col items-center gap-0.5 rounded-full py-2 text-[0.7rem] font-medium',

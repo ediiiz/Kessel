@@ -3,7 +3,7 @@
    * The device page's full-bleed hero: the role's artwork with the name and connection state over
    * it, a back button and a refresh. The model line shows `brand` and `vib`, which are not private.
    */
-  import { resolve } from '$app/paths';
+  import { link } from '$lib/links';
   import type { DeviceSummary } from '$lib/api-types';
   import {
     connectionDetail,
@@ -55,7 +55,7 @@
   <div
     class="absolute inset-x-0 top-0 z-30 flex items-center justify-between px-4 pt-[calc(1rem+env(safe-area-inset-top))] md:px-6"
   >
-    <a href={resolve(ROUTES.home)} class={BUTTON} aria-label="Back to home" title="Back">
+    <a href={link(ROUTES.home)} class={BUTTON} aria-label="Back to home" title="Back">
       <ArrowLeft class="size-5" aria-hidden="true" />
     </a>
     <button
