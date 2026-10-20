@@ -82,10 +82,13 @@ impl Shadow {
     /// [`Origin::Confirmed`] — it came from the appliance, not a local write.
     pub fn seed(&mut self, updates: &[ValueUpdate]) {
         for update in updates {
+            let Some(value) = &update.value else {
+                continue;
+            };
             self.entries.insert(
                 update.uid,
                 ShadowEntry {
-                    value: update.value.clone(),
+                    value: value.clone(),
                     origin: Origin::Confirmed,
                 },
             );
@@ -106,11 +109,15 @@ impl Shadow {
 
     /// Reconciles an authoritative `NOTIFY /ro/values` update. The appliance's value always wins
     /// and the entry becomes [`Origin::Confirmed`], whether or not it matched the optimistic value.
+    /// An update that only revised the description leaves the held value as it is.
     pub fn reconcile(&mut self, update: &ValueUpdate) {
+        let Some(value) = &update.value else {
+            return;
+        };
         self.entries.insert(
             update.uid,
             ShadowEntry {
-                value: update.value.clone(),
+                value: value.clone(),
                 origin: Origin::Confirmed,
             },
         );

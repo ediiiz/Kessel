@@ -245,7 +245,7 @@ impl DeviceSession for FakeSession {
     fn initial_state(&self) -> Vec<ValueUpdate> {
         vec![ValueUpdate {
             uid: 539,
-            value: Value::from(1),
+            value: Some(Value::from(1)),
             description: hc_proto::DescriptionUpdate::default(),
         }]
     }

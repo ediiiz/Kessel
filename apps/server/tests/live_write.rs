@@ -329,8 +329,8 @@ async fn read_back(
     let readback = after
         .iter()
         .rev()
-        .find(|update| update.uid == target.uid)
-        .map(|update| update.value.clone());
+        .find(|update| update.uid == target.uid && update.value.is_some())
+        .and_then(|update| update.value.clone());
     eprintln!(
         "--- {slug}: read-back uid={} before={} after={}",
         target.uid,
@@ -493,9 +493,9 @@ fn pick_target(entry: &DeviceEntry, updates: &[hc_proto::ValueUpdate]) -> Option
         let current = updates
             .iter()
             .rev()
-            .find(|update| update.uid == u64::from(descriptor.uid))?
+            .find(|update| update.uid == u64::from(descriptor.uid) && update.value.is_some())?
             .value
-            .clone();
+            .clone()?;
         Some(Target {
             uid: u64::from(descriptor.uid),
             feature_key: (*preferred).to_owned(),

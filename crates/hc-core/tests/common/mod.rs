@@ -477,7 +477,7 @@ impl DeviceLink for FakeLink {
 pub fn update(uid: u64, value: Value) -> ValueUpdate {
     ValueUpdate {
         uid,
-        value,
+        value: Some(value),
         description: hc_proto::DescriptionUpdate::default(),
     }
 }

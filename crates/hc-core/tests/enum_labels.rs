@@ -352,7 +352,7 @@ async fn a_contributed_member_name_is_offered_published_and_accepted_back() {
             model,
             &hc_proto::ValueUpdate {
                 uid: u64::from(entry.uid),
-                value: serde_json::Value::from(0),
+                value: Some(serde_json::Value::from(0)),
                 description: hc_proto::DescriptionUpdate::default(),
             },
         )

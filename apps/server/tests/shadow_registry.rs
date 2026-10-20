@@ -30,7 +30,7 @@ use server::state::AppState;
 fn update(uid: u64, value: serde_json::Value) -> ValueUpdate {
     ValueUpdate {
         uid,
-        value,
+        value: Some(value),
         description: hc_proto::DescriptionUpdate::default(),
     }
 }

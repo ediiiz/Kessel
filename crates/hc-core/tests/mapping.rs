@@ -698,7 +698,7 @@ fn a_live_description_overrides_the_archive_it_is_newer_than() {
     assert!(
         live.absorb(&hc_proto::ValueUpdate {
             uid: u64::from(uid),
-            value: serde_json::Value::from(-18),
+            value: Some(serde_json::Value::from(-18)),
             description: hc_proto::DescriptionUpdate {
                 access: Some("readWrite".to_owned()),
                 available: Some(true),
@@ -727,7 +727,7 @@ fn a_live_description_overrides_the_archive_it_is_newer_than() {
     assert!(
         !live.absorb(&hc_proto::ValueUpdate {
             uid: u64::from(uid),
-            value: serde_json::Value::from(-19),
+            value: Some(serde_json::Value::from(-19)),
             description: hc_proto::DescriptionUpdate::default(),
         }),
         "a value-only item revises no description and must not be reported as a change"
@@ -763,7 +763,7 @@ fn a_control_locked_at_run_time_keeps_its_shape() {
     let mut live = LiveDescriptions::default();
     live.absorb(&hc_proto::ValueUpdate {
         uid: u64::from(uid),
-        value: serde_json::Value::Null,
+        value: Some(serde_json::Value::Null),
         description: hc_proto::DescriptionUpdate {
             access: Some("read".to_owned()),
             ..hc_proto::DescriptionUpdate::default()

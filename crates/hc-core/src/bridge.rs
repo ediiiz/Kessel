@@ -184,9 +184,10 @@ impl DeviceBridge {
     /// The value is rendered by [`rendered_value`] and then given the same label the announced
     /// `options` use, because HA discards a state that is not one of its options. A reported `null`,
     /// an unresolved program pointer, or any state outside the announced options is published as
-    /// [`PAYLOAD_NONE`] so HA shows *unknown* rather than a stale value. An update whose uid has no
-    /// `state_topic` in the mapping is dropped rather than published to a guessed topic. Neither the
-    /// topic nor the payload is logged.
+    /// [`PAYLOAD_NONE`] so HA shows *unknown* rather than a stale value. An update that carried no
+    /// value, only a description revision, publishes nothing: the entity keeps its state. An update
+    /// whose uid has no `state_topic` in the mapping is dropped rather than published to a guessed
+    /// topic. Neither the topic nor the payload is logged.
     ///
     /// # Errors
     ///
@@ -208,7 +209,10 @@ impl DeviceBridge {
         let Some(relative) = entry.state_topic.as_deref() else {
             return Ok(());
         };
-        let rendered = rendered_value(model, entry.uid, &update.value);
+        let Some(value) = &update.value else {
+            return Ok(());
+        };
+        let rendered = rendered_value(model, entry.uid, value);
         // Relabel with the same function and catalogue the announce used for `options`. This
         // happens only at the MQTT edge: REST and SSE keep the appliance's own member name so a
         // browser can write it back.
@@ -216,8 +220,8 @@ impl DeviceBridge {
         let labelled = presented.member_label(&rendered);
         // `None` for: a reported `null`; a program pointer naming no declared program (uid 0 when
         // idle); any state the announced `options` do not contain.
-        let payload = if update.value.is_null()
-            || is_unresolved_program(model, entry.uid, update)
+        let payload = if value.is_null()
+            || is_unresolved_program(model, entry.uid, value)
             || unannounced_option(entry, &presented, labelled)
         {
             PAYLOAD_NONE
@@ -387,13 +391,13 @@ fn unannounced_option(
 /// Whether this update is a program pointer that resolves to no declared program.
 ///
 /// Separate from [`program_name`], which also returns [`None`] for entities that are not pointers.
-fn is_unresolved_program(model: &EntityModel, uid: u16, update: &hc_proto::ValueUpdate) -> bool {
+fn is_unresolved_program(model: &EntityModel, uid: u16, value: &Value) -> bool {
     model.entity(uid).is_some_and(|entity| {
         matches!(
             entity.kind,
             hc_profile::EntityKind::ActiveProgram | hc_profile::EntityKind::SelectedProgram
         )
-    }) && program_name(model, uid, &update.value).is_none()
+    }) && program_name(model, uid, value).is_none()
 }
 
 /// The dotted key of the program a program pointer points at, or [`None`] when this entity is not

@@ -620,10 +620,10 @@ impl ValueEvents<'_> {
     /// Emits one bus event per update, with the value rendered exactly as MQTT and REST render it.
     fn publish(&self, updates: &[ValueUpdate]) {
         for update in updates {
-            let Ok(uid) = u16::try_from(update.uid) else {
+            let (Ok(uid), Some(value)) = (u16::try_from(update.uid), &update.value) else {
                 continue;
             };
-            let rendered = hc_core::rendered_value(self.model, uid, &update.value);
+            let rendered = hc_core::rendered_value(self.model, uid, value);
             self.bus.emit(
                 hc_core::trace::TraceRecord::new(
                     hc_core::trace::TraceLevel::Debug,

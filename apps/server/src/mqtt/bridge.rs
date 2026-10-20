@@ -384,7 +384,8 @@ impl Worker {
                 self.publish_presence().await
             }
             DeviceEvent::Updates(updates) => {
-                for update in &updates {
+                // A description-only update must not replace the value republished on HA's birth.
+                for update in updates.iter().filter(|update| update.value.is_some()) {
                     self.values.insert(update.uid, update.clone());
                 }
                 self.publish_values(updates.iter()).await

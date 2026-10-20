@@ -239,7 +239,7 @@ fn an_update_item_carries_its_description_not_only_its_value() {
 
     let described = applied.first().expect("the described item is applied");
     assert_eq!(described.uid, 2006);
-    assert_eq!(described.value, serde_json::json!(-18));
+    assert_eq!(described.value, Some(serde_json::json!(-18)));
     assert_eq!(described.description.access.as_deref(), Some("readWrite"));
     assert_eq!(described.description.available, Some(true));
     assert_eq!(described.description.min, Some(-24));
@@ -257,4 +257,23 @@ fn an_update_item_carries_its_description_not_only_its_value() {
     );
     assert_eq!(plain.description.min, None);
     assert_eq!(plain.description.access, None);
+}
+
+#[test]
+fn an_item_without_a_value_is_not_a_reported_null() {
+    let known: BTreeSet<u64> = [7, 8].into_iter().collect();
+    let items = vec![
+        serde_json::json!({"uid": 7, "available": false}),
+        serde_json::json!({"uid": 8, "value": null}),
+    ];
+
+    let applied = apply_updates(&known, &items);
+
+    let revised = applied
+        .first()
+        .expect("the description-only item is applied");
+    assert_eq!(revised.value, None, "absent is not null");
+    assert_eq!(revised.description.available, Some(false));
+    let nulled = applied.get(1).expect("the null item is applied");
+    assert_eq!(nulled.value, Some(serde_json::Value::Null));
 }
