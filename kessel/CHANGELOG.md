@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.3.0](https://github.com/ediiiz/Kessel/compare/v0.2.1...v0.3.0) (2026-10-20)
+
+### Bug Fixes
+
+* Changing one setting no longer blanks other entities in Home Assistant. When the appliance updated only whether a related setting is available, Kessel reported that setting as unknown; it now keeps its value.
+* Stopping or restarting the add-on no longer hangs while the Kessel web UI is open in a browser.
+
+### Improvements
+
+* The Language setting lists each language in its own name (Deutsch, Français, …) instead of a code.
+
 ## [0.2.1](https://github.com/ediiiz/Kessel/compare/v0.2.0...v0.2.1) (2026-10-20)
 
 ### Bug Fixes
