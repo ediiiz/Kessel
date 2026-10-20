@@ -98,7 +98,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add kessel-beta/config.yaml kessel-beta/CHANGELOG.md
           git commit -m "chore(beta): publish ${VERSION}"
-          for attempt in 1 2 3; do
+          for _ in 1 2 3; do
             git push origin HEAD:main && exit 0
             git pull --rebase origin main
           done
