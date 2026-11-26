@@ -13,7 +13,7 @@
   import { CircleStop, Play, Timer } from '$lib/icons';
   import { isHeating } from '$lib/appliance';
   import * as Select from '$lib/components/ui/select';
-  import { ACTIVE_PROGRAM, NO_PROGRAMME, SELECTED_PROGRAM } from '$lib/programme';
+  import { ACTIVE_PROGRAM, NO_PROGRAMME, SELECTED_PROGRAM, programmeRuns } from '$lib/programme';
   import { displayValue, programFor, progressPercent } from '$lib/value';
   import { enter, flash } from '$lib/motion';
   import { WriteGate, type ProposedWrite, type Writer } from '$lib/write.svelte';
@@ -49,12 +49,7 @@
   const progress = $derived(find('Option.ProgramProgress'));
   const operation = $derived(find('Status.OperationState'));
 
-  const running = $derived(
-    active !== undefined &&
-      active.value !== null &&
-      active.value !== NO_PROGRAMME &&
-      active.value !== '',
-  );
+  const running = $derived(programmeRuns(operation?.value, active?.value));
   const programme = $derived(running ? active : selected);
   const name = $derived(
     programme === undefined ? null : displayValue(programme.feature_key, programme.value, programs),

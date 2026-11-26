@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { WriteOutcome } from '$lib/api-types';
-import { ACTIVE_PROGRAM, SELECTED_PROGRAM, programmeWriter } from './programme';
+import { ACTIVE_PROGRAM, SELECTED_PROGRAM, programmeRuns, programmeWriter } from './programme';
 
 /**
  * The programme card proposes every action as a write to a programme pointer, so the confirmation
@@ -43,5 +43,27 @@ describe('programme_writer_routes_each_action', () => {
     const api = fakeApi();
     await programmeWriter(api)('dw', { feature_key: 'Some.Feature', value: '1' });
     expect(api.write).toHaveBeenCalledWith('dw', { feature_key: 'Some.Feature', value: '1' });
+  });
+});
+
+describe('programme_runs_by_the_operation_state', () => {
+  it('trusts the operation state over the active programme', () => {
+    // A dishwasher keeps reporting its last programme as active after an abort, while Ready.
+    expect(programmeRuns('Ready', ECO)).toBe(false);
+    expect(programmeRuns('Finished', ECO)).toBe(false);
+    for (const state of ['Run', 'DelayedStart', 'Pause', 'ActionRequired']) {
+      expect(programmeRuns(state, ECO)).toBe(true);
+    }
+  });
+
+  it('reads an operation state reported as its full key', () => {
+    expect(programmeRuns('BSH.Common.EnumType.OperationState.Run', ECO)).toBe(true);
+    expect(programmeRuns('BSH.Common.EnumType.OperationState.Ready', ECO)).toBe(false);
+  });
+
+  it('falls back to the active programme without an operation state', () => {
+    expect(programmeRuns(null, ECO)).toBe(true);
+    expect(programmeRuns(undefined, '0')).toBe(false);
+    expect(programmeRuns(null, null)).toBe(false);
   });
 });

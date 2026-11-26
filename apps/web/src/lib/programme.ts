@@ -17,6 +17,26 @@ export const ACTIVE_PROGRAM = 'BSH.Common.Root.ActiveProgram';
 /** The active-programme value that means "nothing runs". */
 export const NO_PROGRAMME = '0';
 
+/** The operation states in which a programme runs or waits to, so Stop has something to stop. */
+const RUNNING_STATES = new Set(['Run', 'DelayedStart', 'Pause', 'ActionRequired']);
+
+/**
+ * Whether a programme runs, by the appliance's operation state where it reports one.
+ *
+ * The active programme alone is not enough: a dishwasher keeps reporting its last programme as
+ * active after an abort while it is `Ready`. Without an operation state, a non-zero active programme
+ * is all there is to go on. The state may arrive as its short name or as its full enum key.
+ */
+export function programmeRuns(
+  operation: string | null | undefined,
+  active: string | null | undefined,
+): boolean {
+  if (operation !== null && operation !== undefined && operation !== '') {
+    return RUNNING_STATES.has(operation.slice(operation.lastIndexOf('.') + 1));
+  }
+  return active !== null && active !== undefined && active !== '' && active !== NO_PROGRAMME;
+}
+
 /** The routes {@link programmeWriter} needs. */
 export interface ProgrammeRoutes {
   write(slug: string, request: WriteRequest): Promise<WriteOutcome>;

@@ -37,6 +37,22 @@ function pointer(suffix: string, value: string | null): EntityDescriptor {
   };
 }
 
+function operationState(value: string): EntityDescriptor {
+  return {
+    uid: 552,
+    feature_key: 'BSH.Common.Status.OperationState',
+    feature_path: 'BSH/Common/Status/OperationState',
+    access: 'read',
+    writable: false,
+    options: [],
+    label: 'OperationState',
+    label_source: 'prefix',
+    description: null,
+    option_labels: {},
+    value,
+  };
+}
+
 function programme(uid: number, key: string, label: string): ProgramDescriptor {
   return {
     uid,
@@ -58,6 +74,7 @@ function mount(
   options: {
     active?: string;
     selected?: string;
+    operation?: string;
     role?: string;
     write?: typeof refuse | undefined;
   } = {},
@@ -66,6 +83,7 @@ function mount(
     entities: [
       pointer('ActiveProgram', options.active ?? '0'),
       pointer('SelectedProgram', options.selected ?? ECO),
+      ...(options.operation === undefined ? [] : [operationState(options.operation)]),
     ],
     programs: PROGRAMS,
     slug: 'appliance',
@@ -146,6 +164,24 @@ describe('programme_card_stops_the_running_programme', () => {
   it('offers no stop when nothing runs', () => {
     const view = mount({ write: vi.fn(refuse) });
     expect(view.query('programme-stop')).toBeNull();
+    view.destroy();
+  });
+});
+
+describe('programme_card_follows_the_operation_state', () => {
+  // A dishwasher keeps reporting its last programme as active after an abort, while it is Ready.
+  it('offers Start, not Stop, when the appliance is Ready with a programme still reported', () => {
+    const view = mount({ active: GLASS, selected: ECO, operation: 'Ready', write: vi.fn(refuse) });
+    expect(view.query('programme-stop')).toBeNull();
+    expect(view.query('programme-start')?.textContent).toContain('Start Eco 50');
+    expect(view.query('programme-name')?.textContent).toContain('Eco 50');
+    view.destroy();
+  });
+
+  it('offers Stop during a delayed start', () => {
+    const view = mount({ active: GLASS, operation: 'DelayedStart', write: vi.fn(refuse) });
+    expect(view.query('programme-stop')?.textContent).toContain('Stop Glass 40');
+    expect(view.query('programme-start')).toBeNull();
     view.destroy();
   });
 });
