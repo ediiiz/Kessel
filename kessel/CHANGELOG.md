@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/ediiiz/Kessel/compare/v0.3.1...v0.4.0) (2026-11-26)
+
+
+### Features
+
+* select, start and stop programmes everywhere; fix the dishwasher start and the stop button ([#8](https://github.com/ediiiz/Kessel/issues/8)) ([22fc2fb](https://github.com/ediiiz/Kessel/commit/22fc2fb0e79e92beb527f8e7968184a2f47cf51a))
+
 ## [0.3.1](https://github.com/ediiiz/Kessel/compare/v0.3.0...v0.3.1) (2026-10-20)
 
 ### Bug Fixes
