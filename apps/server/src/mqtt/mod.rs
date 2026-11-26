@@ -216,7 +216,16 @@ pub async fn route_inbound_set(
     };
     let identity = entry.profile.identity();
     let names = CatalogueNames::for_device(&identity.brand, &identity.vib);
-    let device = hc_core::bridge::SetContext::new(&entry.model, &entry.mapping).with_names(&names);
+    // Only a start reads the values. A snapshot, so the shadow's lock is not held across the write.
+    let values = (relative == hc_core::bridge::START_PROGRAM_TOPIC)
+        .then(|| state.shadows().shadow(slug))
+        .flatten()
+        .map(|shadow| shadow.lock().clone());
+    let mut device =
+        hc_core::bridge::SetContext::new(&entry.model, &entry.mapping).with_names(&names);
+    if let Some(values) = &values {
+        device = device.with_values(values);
+    }
     let verdict =
         hc_core::bridge::handle_set(&mut *shared.lock().await, &device, relative, payload).await;
     match verdict {

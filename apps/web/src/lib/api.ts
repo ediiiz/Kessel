@@ -25,6 +25,7 @@ import type {
   ProgramDescriptor,
   RestartOutcome,
   SessionView,
+  StartProgramRequest,
   WriteOutcome,
   WriteRequest,
 } from '$lib/api-types';
@@ -78,12 +79,7 @@ export interface ApiClient {
   health(): Promise<Health>;
   devices(): Promise<DeviceSummary[]>;
   entities(slug: string): Promise<EntityDescriptor[]>;
-  /**
-   * The appliance's programmes, named.
-   *
-   * A read, and the only programme route. There is deliberately no `startProgram`: the daemon exposes no
-   * handler for one, and starting a programme on a real cooktop is not a UI affordance.
-   */
+  /** The appliance's programmes, named. */
   programs(slug: string): Promise<ProgramDescriptor[]>;
   /**
    * Phase 1: parse a profile ZIP and report what it says. **Dials nothing, stores nothing.**
@@ -107,6 +103,13 @@ export interface ApiClient {
   /** Forgets a device, on the daemon's disk as well as in its registry. */
   deleteDevice(slug: string): Promise<void>;
   write(slug: string, request: WriteRequest): Promise<WriteOutcome>;
+  /**
+   * Starts a programme: the one named, or the one the appliance reports as selected. The daemon sends
+   * the frame the appliance's own description calls for; the appliance's answer is the outcome.
+   */
+  startProgram(slug: string, request: StartProgramRequest): Promise<WriteOutcome>;
+  /** Stops whatever the appliance runs, a delayed start included. */
+  stopProgram(slug: string): Promise<WriteOutcome>;
   /** The stored configuration. Never carries the broker password — see `ConfigView`. */
   config(): Promise<ConfigView>;
   /**
@@ -152,11 +155,11 @@ function readRoutes(
   };
 }
 
-/** The two routes that address an existing device. */
+/** The routes that act on an existing device. */
 function deviceRoutes(
   doFetch: FetchLike,
   authHeaders: AuthHeaders,
-): Pick<ApiClient, 'setManualHost' | 'write'> {
+): Pick<ApiClient, 'setManualHost' | 'write' | 'startProgram' | 'stopProgram'> {
   return {
     setManualHost: async (slug, host) => {
       const body: ManualHostRequest = { host };
@@ -171,6 +174,22 @@ function deviceRoutes(
       const response = await doFetch(
         apiUrl(`/devices/${encodeURIComponent(slug)}/write`),
         jsonPost(request, authHeaders('application/json')),
+      );
+      return readWriteOutcome(response);
+    },
+
+    startProgram: async (slug, request) => {
+      const response = await doFetch(
+        apiUrl(`/devices/${encodeURIComponent(slug)}/program/start`),
+        jsonPost(request, authHeaders('application/json')),
+      );
+      return readWriteOutcome(response);
+    },
+
+    stopProgram: async (slug) => {
+      const response = await doFetch(
+        apiUrl(`/devices/${encodeURIComponent(slug)}/program/stop`),
+        jsonPost({}, authHeaders('application/json')),
       );
       return readWriteOutcome(response);
     },

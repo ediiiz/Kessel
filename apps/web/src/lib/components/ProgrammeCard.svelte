@@ -1,18 +1,43 @@
 <script lang="ts">
   /**
-   * The running or selected programme, its time remaining and its progress. Read-only: Kessel shows
-   * the programme, it does not start one.
+   * The running or selected programme, its time remaining and its progress, with a programme
+   * dropdown, Start for the selected programme and Stop for the running one.
+   *
+   * Every control is proposed as a write to a programme pointer (`$lib/programme`), so what is
+   * confirmed is what changes, and goes through the same {@link WriteGate} as every other write:
+   * confirmed first on an appliance that produces heat, sent at once elsewhere. Kessel does not judge
+   * whether the appliance should select, start or stop; its answer is the toast. Without a `write`
+   * callback the card is read-only.
    */
   import type { EntityDescriptor, ProgramDescriptor } from '$lib/api-types';
-  import { Timer } from '$lib/icons';
-  import { displayValue, progressPercent } from '$lib/value';
+  import { CircleStop, Play, Timer } from '$lib/icons';
+  import { isHeating } from '$lib/appliance';
+  import * as Select from '$lib/components/ui/select';
+  import { ACTIVE_PROGRAM, NO_PROGRAMME, SELECTED_PROGRAM, programmeRuns } from '$lib/programme';
+  import { displayValue, programFor, progressPercent } from '$lib/value';
   import { enter, flash } from '$lib/motion';
+  import { WriteGate, type ProposedWrite, type Writer } from '$lib/write.svelte';
+  import WriteConfirmation from './WriteConfirmation.svelte';
 
   const {
     entities,
     programs,
+    slug = '',
+    role = '',
+    write,
     index = 0,
-  }: { entities: EntityDescriptor[]; programs: ProgramDescriptor[]; index?: number } = $props();
+  }: {
+    entities: EntityDescriptor[];
+    programs: ProgramDescriptor[];
+    slug?: string;
+    role?: string;
+    /**
+     * Sends a programme action as a write to a pointer (`$lib/programme.programmeWriter`). Absent makes
+     * the card read-only.
+     */
+    write?: Writer;
+    index?: number;
+  } = $props();
 
   function find(suffix: string): EntityDescriptor | undefined {
     return entities.find((entity) => entity.feature_key?.endsWith(suffix) === true);
@@ -24,9 +49,7 @@
   const progress = $derived(find('Option.ProgramProgress'));
   const operation = $derived(find('Status.OperationState'));
 
-  const running = $derived(
-    active !== undefined && active.value !== null && active.value !== '0' && active.value !== '',
-  );
+  const running = $derived(programmeRuns(operation?.value, active?.value));
   const programme = $derived(running ? active : selected);
   const name = $derived(
     programme === undefined ? null : displayValue(programme.feature_key, programme.value, programs),
@@ -35,6 +58,37 @@
   const time = $derived(
     remaining === undefined ? null : displayValue(remaining.feature_key, remaining.value),
   );
+
+  /** The programmes this profile names by key: the only ones a write can address. */
+  const named = $derived(programs.filter((program) => program.feature_key !== null));
+  /** The selected programme, when the appliance reports one this profile names by key. */
+  const current = $derived(
+    named.find((program) => program === programFor(selected?.value ?? null, programs)) ?? null,
+  );
+  const selectable = $derived(selected?.writable === true && named.length > 0);
+
+  const gate = new WriteGate();
+  const confirmFirst = $derived(isHeating(role));
+
+  function propose(send: Writer, proposed: ProposedWrite): void {
+    if (confirmFirst) {
+      gate.propose(proposed);
+    } else {
+      void gate.send(slug, send, proposed);
+    }
+  }
+
+  function choose(send: Writer, key: string): void {
+    const program = named.find((candidate) => candidate.feature_key === key);
+    if (program === undefined || program === current) {
+      return;
+    }
+    propose(send, {
+      featureKey: selected?.feature_key ?? SELECTED_PROGRAM,
+      value: key,
+      label: `Select ${program.label}`,
+    });
+  }
 </script>
 
 {#if programme !== undefined}
@@ -61,6 +115,77 @@
         </span>
       {/if}
     </div>
+
+    {#if write !== undefined}
+      {@const send = write}
+      <div class="flex flex-col gap-2 sm:flex-row" data-testid="programme-controls">
+        {#if selectable}
+          <Select.Root
+            type="single"
+            value={current?.feature_key ?? ''}
+            onValueChange={(key) => choose(send, key)}
+          >
+            <Select.Trigger
+              data-testid="programme-select"
+              aria-label="Programme"
+              disabled={gate.busy}
+              class="bg-surface-strong h-11 w-full rounded-2xl sm:flex-1"
+            >
+              {current?.label ?? 'Choose a programme'}
+            </Select.Trigger>
+            <Select.Content>
+              <Select.Group>
+                {#each named as program (program.uid)}
+                  <Select.Item value={program.feature_key ?? ''} label={program.label}>
+                    {program.label}
+                  </Select.Item>
+                {/each}
+              </Select.Group>
+            </Select.Content>
+          </Select.Root>
+        {/if}
+
+        {#if running}
+          <button
+            type="button"
+            data-testid="programme-stop"
+            disabled={gate.busy}
+            aria-busy={gate.sending !== null}
+            onclick={() => {
+              propose(send, {
+                featureKey: active?.feature_key ?? ACTIVE_PROGRAM,
+                value: NO_PROGRAMME,
+                label: `Stop ${name ?? 'programme'}`,
+              });
+            }}
+            class="press bg-destructive hover:bg-destructive/90 inline-flex h-11 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60"
+          >
+            <CircleStop class="size-4" aria-hidden="true" />
+            {gate.sending === null ? `Stop ${name ?? 'programme'}` : 'Stopping…'}
+          </button>
+        {:else if current !== null}
+          {@const program = current}
+          <button
+            type="button"
+            data-testid="programme-start"
+            disabled={gate.busy}
+            aria-busy={gate.sending !== null}
+            title={program.feature_key}
+            onclick={() => {
+              propose(send, {
+                featureKey: active?.feature_key ?? ACTIVE_PROGRAM,
+                value: program.feature_key ?? '',
+                label: `Start ${program.label}`,
+              });
+            }}
+            class="press bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-11 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-semibold disabled:cursor-wait disabled:opacity-60"
+          >
+            <Play class="size-4" aria-hidden="true" />
+            {gate.sending === null ? `Start ${program.label}` : 'Starting…'}
+          </button>
+        {/if}
+      </div>
+    {/if}
 
     {#if time !== null}
       <div class="flex items-end justify-between gap-3">
@@ -91,6 +216,10 @@
           style:width="{percent}%"
         ></div>
       </div>
+    {/if}
+
+    {#if write !== undefined && confirmFirst}
+      <WriteConfirmation {gate} {slug} {role} {write} />
     {/if}
   </section>
 {/if}

@@ -1,6 +1,6 @@
-//! Device-specific program-start paths, construction only: these build the command shape per
-//! appliance class and send nothing. They assert the resource, the `validate` flag and the uid,
-//! which are what distinguish the paths.
+//! Program-start paths, construction only: these build the start command each appliance's own
+//! description calls for and send nothing. They assert the resource, the `validate` flag and the
+//! uid, which are what distinguish the paths.
 
 #![cfg_attr(
     test,
@@ -12,73 +12,47 @@
     )
 )]
 
-use hc_core::write::{
-    DeviceRole, FINISH_IN_RELATIVE_UID, StartRequest, WriteError, check_access, start_command,
-};
-use hc_profile::Access;
+use std::path::PathBuf;
 
-const fn request() -> StartRequest {
-    StartRequest {
-        program_uid: 0x1234,
-        start_option_uid: 0x022E,
-        relative_time: 0,
-    }
+use hc_core::write::{WriteError, check_access, start_command};
+use hc_profile::{Access, Profile};
+use serde_json::Value;
+
+fn fixture_profile(name: &str) -> Profile {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../hc-profile/tests/fixtures")
+        .join(name);
+    Profile::from_zip_bytes(&std::fs::read(path).unwrap()).unwrap()
 }
 
 #[test]
-fn hob_starts_via_selected_program_validate_false() {
-    let command = start_command(&DeviceRole::Cooktop, &request()).expect("hob has a start path");
+fn a_writable_active_program_starts_via_active_program() {
+    // The dishwasher declares `<activeProgram access="readWrite">`: selecting only selects, and
+    // the start is `POST /ro/activeProgram` with the programme and its options.
+    let profile = fixture_profile("dishwasher-tls.zip");
+    let options = vec![(0x022E, Value::from(600))];
+    let command = start_command(profile.model(), 0x2000, options.clone());
+    assert_eq!(command.resource, "/ro/activeProgram");
+    assert_eq!(command.target_uid, Some(0x2000));
     assert_eq!(
-        command.resource, "/ro/selectedProgram",
-        "the cooktop starts via a direct selectedProgram write"
+        command.options, options,
+        "the options travel with the start"
     );
-    assert!(
-        !command.validate,
-        "the cooktop selectedProgram write carries validate=false"
-    );
-    assert_eq!(
-        command.target_uid,
-        Some(0x1234),
-        "the selectedProgram write targets the program uid"
-    );
+    assert!(command.validate);
 }
 
 #[test]
-fn dishwasher_starts_via_start_in_relative() {
-    let command =
-        start_command(&DeviceRole::Dishwasher, &request()).expect("dishwasher has a start path");
-    assert_eq!(
-        command.field.as_deref(),
-        Some("StartInRelative"),
-        "the dishwasher starts via StartInRelative"
-    );
-    assert_eq!(
-        command.target_uid,
-        Some(0x022E),
-        "StartInRelative addresses the option uid from the model"
-    );
-}
-
-#[test]
-fn washer_dryer_starts_via_finish_in_relative_uid_551() {
-    assert_eq!(
-        FINISH_IN_RELATIVE_UID, 551,
-        "the FinishInRelative option uid is 551"
-    );
-    for role in [DeviceRole::Washer, DeviceRole::Dryer] {
-        let command = start_command(&role, &request())
-            .unwrap_or_else(|_| panic!("{} has a start path", role.label()));
-        assert_eq!(
-            command.field.as_deref(),
-            Some("FinishInRelative"),
-            "{} starts via FinishInRelative",
-            role.label()
-        );
-        assert_eq!(
-            command.target_uid,
-            Some(FINISH_IN_RELATIVE_UID),
-            "{} FinishInRelative pins uid 551, not the caller's option uid",
-            role.label()
+fn a_read_only_active_program_starts_via_the_selection() {
+    // The hob and the oven declare `<activeProgram access="read">`: their selection is the start,
+    // a direct `POST /ro/selectedProgram` with `validate=false`.
+    for fixture in ["hob-aes.zip", "oven-tls.zip"] {
+        let profile = fixture_profile(fixture);
+        let command = start_command(profile.model(), 0x1234, Vec::new());
+        assert_eq!(command.resource, "/ro/selectedProgram", "{fixture}");
+        assert_eq!(command.target_uid, Some(0x1234), "{fixture}");
+        assert!(
+            !command.validate,
+            "{fixture}: the direct path is validate=false"
         );
     }
 }
@@ -124,30 +98,4 @@ fn write_rejected_when_access_says_no() {
     // The two writable words pass the access gate.
     check_access(Some(&Access::ReadWrite)).expect("readWrite is writable");
     check_access(Some(&Access::WriteOnly)).expect("writeOnly is writable");
-}
-
-/// The oven starts a programme through `/ro/selectedProgram`, like the cooktop. The fridge stays
-/// unsupported because its description declares no programmes.
-#[test]
-fn oven_starts_via_selected_program_like_the_hob() {
-    let command = start_command(&DeviceRole::Oven, &request()).expect("the oven has a start path");
-    assert_eq!(
-        command.resource, "/ro/selectedProgram",
-        "the oven takes the direct program-select path, like the cooktop"
-    );
-    assert_eq!(
-        command.target_uid,
-        Some(request().program_uid),
-        "the program uid is what the frame emits as `program`"
-    );
-    assert!(
-        !command.validate,
-        "validate=false on the direct path, as for the cooktop"
-    );
-
-    let fridge = start_command(&DeviceRole::Fridge, &request());
-    assert!(
-        fridge.is_err(),
-        "the fridge declares no programs, so there is nothing to start: {fridge:?}"
-    );
 }

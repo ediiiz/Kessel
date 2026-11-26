@@ -365,3 +365,24 @@ fn a_program_start_with_no_options_emits_an_empty_list() {
         "an optionless program start keeps the `options` key with an empty list: {wire}"
     );
 }
+
+/// `POST /ro/activeProgram` carries the same body as a selection, on the resource that starts a
+/// programme where selecting only selects (hcpy's documented dishwasher start).
+#[test]
+fn program_activate_posts_the_same_body_to_active_program() {
+    let frame = OutgoingMessage::program_activate(
+        1,
+        2,
+        Version::Int(1),
+        8196,
+        vec![WriteItem {
+            uid: 558,
+            value: WriteValue::Number(Number::from(600)),
+        }],
+    );
+    let wire = String::from_utf8(frame.to_wire_bytes().unwrap()).unwrap();
+    assert_eq!(
+        wire,
+        r#"{"sID":1,"msgID":2,"resource":"/ro/activeProgram","version":1,"action":"POST","data":[{"program":8196,"options":[{"uid":558,"value":600}]}]}"#,
+    );
+}

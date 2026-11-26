@@ -9,7 +9,7 @@ import type { LabelOrigin } from "./LabelOrigin.js";
  */
 export type ProgramDescriptor = { 
 /**
- * The wire `uid`, which a `/ro/selectedProgram` write addresses.
+ * The wire `uid`, which a programme selection or start addresses.
  */
 uid: number, 
 /**
@@ -33,6 +33,6 @@ description: string | null,
  * The appliance's declared `execution` word, verbatim (`"none"`, `"selectOnly"`,
  * `"selectAndStart"`).
  *
- * Sent unchanged: a start control must gate on what the appliance says it accepts.
+ * Sent unchanged, for the operator to read; Kessel does not gate a start on it.
  */
 execution: string | null, };

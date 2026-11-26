@@ -168,9 +168,8 @@ impl Peer {
             ("RESPONSE" | "NOTIFY", _) => Vec::new(),
             ("GET", _) => vec![self.on_get(&request)],
             ("POST", "/ro/values") => self.on_write(&request),
-            ("POST", "/ro/selectedProgram" | "/ro/activeProgram") => {
-                self.on_program_start(&request)
-            }
+            ("POST", "/ro/selectedProgram") => self.on_program(&request, false),
+            ("POST", "/ro/activeProgram") => self.on_program(&request, true),
             ("DELETE", "/ro/activeProgram") => self.on_program_stop(&request),
             _ => {
                 tracing::warn!(action = %request.action, resource = %request.resource, "unsupported request");
@@ -240,12 +239,16 @@ impl Peer {
         }
     }
 
-    fn on_program_start(&mut self, request: &Request) -> Vec<Value> {
-        let outcome = self.appliance.lock().start_program(&request.data);
+    fn on_program(&mut self, request: &Request, start: bool) -> Vec<Value> {
+        let outcome = if start {
+            self.appliance.lock().start_program(&request.data)
+        } else {
+            self.appliance.lock().select_program(&request.data)
+        };
         match outcome {
             Ok(changes) => {
                 let body = Value::Array(request.data.clone());
-                tracing::info!(%body, "program start accepted");
+                tracing::info!(%body, start, "program request accepted");
                 self.accepted(request, &changes)
             }
             Err(refusal) => self.refused(request, &refusal.0),

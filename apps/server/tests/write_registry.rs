@@ -558,6 +558,81 @@ async fn a_dishwasher_set_message_reaches_the_wire_through_the_mqtt_route() {
     );
 }
 
+/// Pressing the stop button reaches the wire as the dishwasher's own `AbortProgram` command. The
+/// control topic backs no feature, so this pins that the route resolves it at all.
+#[tokio::test]
+async fn the_stop_button_reaches_the_wire_through_the_mqtt_route() {
+    let state = state_with("dishwasher", DeviceRole::Dishwasher, "dishwasher-tls.zip");
+    let (writer, wire) = installed_writer(ED_MSG_ID);
+    state.writers().install("dishwasher", writer);
+    let base = server::mqtt::MqttSettings::DEFAULT_BASE;
+    let topic = format!("{base}/dishwasher/{}", hc_core::bridge::STOP_PROGRAM_TOPIC);
+
+    let outcome = server::mqtt::route_inbound_set(&state, base, "dishwasher", &topic, "true").await;
+    assert!(
+        matches!(outcome, server::mqtt::SetRouting::Accepted),
+        "the stop control is routed and accepted: {outcome:?}"
+    );
+    let frames = wire.frames.lock().clone();
+    assert_eq!(frames.len(), 1, "exactly one frame");
+    let frame: serde_json::Value = serde_json::from_slice(&frames[0]).expect("plaintext JSON");
+    assert_eq!(frame["resource"], "/ro/values");
+    assert_eq!(frame["action"], "POST");
+    assert_eq!(frame["data"][0]["value"], true);
+}
+
+/// Pressing the dishwasher's start button posts the programme its shadow reports as selected to
+/// `/ro/activeProgram`; without a selection nothing leaves the process.
+#[tokio::test]
+async fn the_start_button_starts_the_selected_programme_through_the_mqtt_route() {
+    let state = state_with("dishwasher", DeviceRole::Dishwasher, "dishwasher-tls.zip");
+    let (writer, wire) = installed_writer(ED_MSG_ID);
+    state.writers().install("dishwasher", writer);
+    let entry = state.devices().entry("dishwasher").expect("registered");
+    let selected = entry
+        .model
+        .entities()
+        .values()
+        .find(|entity| entity.kind == hc_profile::EntityKind::SelectedProgram)
+        .expect("the dishwasher declares a selectedProgram")
+        .uid;
+    let program = *entry
+        .model
+        .programs()
+        .keys()
+        .next()
+        .expect("the dishwasher declares programmes");
+    let shadow = Arc::new(Mutex::new(hc_core::shadow::Shadow::new()));
+    state.shadows().install("dishwasher", Arc::clone(&shadow));
+    let base = server::mqtt::MqttSettings::DEFAULT_BASE;
+    let topic = format!("{base}/dishwasher/{}", hc_core::bridge::START_PROGRAM_TOPIC);
+
+    let outcome = server::mqtt::route_inbound_set(&state, base, "dishwasher", &topic, "true").await;
+    assert!(
+        matches!(outcome, server::mqtt::SetRouting::Refused(_)),
+        "with nothing selected the start is refused: {outcome:?}"
+    );
+    assert_eq!(wire.byte_count(), 0, "a refused start sends nothing");
+
+    shadow
+        .lock()
+        .set_optimistic(u64::from(selected), serde_json::Value::from(program));
+    let outcome = server::mqtt::route_inbound_set(&state, base, "dishwasher", &topic, "true").await;
+    assert!(
+        matches!(outcome, server::mqtt::SetRouting::Accepted),
+        "the start is accepted once a programme is selected: {outcome:?}"
+    );
+    let frames = wire.frames.lock().clone();
+    assert_eq!(frames.len(), 1, "exactly one frame");
+    let frame: serde_json::Value = serde_json::from_slice(&frames[0]).expect("plaintext JSON");
+    assert_eq!(frame["resource"], "/ro/activeProgram");
+    assert_eq!(frame["action"], "POST");
+    assert_eq!(
+        frame["data"][0]["program"],
+        serde_json::Value::from(program)
+    );
+}
+
 /// A set message for a device with no live session is refused, and nothing is queued.
 #[tokio::test]
 async fn a_set_message_for_a_disconnected_device_is_refused() {
@@ -587,4 +662,154 @@ async fn a_set_message_for_a_disconnected_device_is_refused() {
         matches!(outcome, server::mqtt::SetRouting::NoLiveSession),
         "a write for a disconnected appliance fails closed and is never queued: {outcome:?}"
     );
+}
+
+/// A `POST /api/devices/{slug}/program/start`, with or without a programme key.
+fn start_request(slug: &str, program: Option<&str>) -> Request<Body> {
+    let body = program.map_or_else(
+        || "{}".to_owned(),
+        |key| format!(r#"{{"program":"{key}"}}"#),
+    );
+    Request::builder()
+        .method("POST")
+        .uri(format!("/api/devices/{slug}/program/start"))
+        .header("content-type", "application/json")
+        .header(TOKEN_HEADER, TEST_TOKEN)
+        .body(Body::from(body))
+        .expect("a well-formed request")
+}
+
+/// The one frame on the wire, as JSON.
+fn only_frame(wire: &Wire) -> serde_json::Value {
+    let frames = wire.frames.lock().clone();
+    assert_eq!(frames.len(), 1, "exactly one frame reached the sink");
+    serde_json::from_slice(&frames[0]).expect("plaintext JSON")
+}
+
+/// The HTTP start route sends what the appliance's description calls for: the dishwasher's
+/// selected programme to `/ro/activeProgram`, a named oven programme to `/ro/selectedProgram`.
+#[tokio::test]
+async fn the_start_route_starts_programmes_through_the_guard() {
+    let state = state_with("dishwasher", DeviceRole::Dishwasher, "dishwasher-tls.zip");
+    let (writer, wire) = installed_writer(ED_MSG_ID);
+    state.writers().install("dishwasher", writer);
+    let shadow = Arc::new(Mutex::new(hc_core::shadow::Shadow::new()));
+    state.shadows().install("dishwasher", Arc::clone(&shadow));
+
+    let reply = common::send(
+        server::api::app(state.clone()),
+        start_request("dishwasher", None),
+    )
+    .await;
+    assert_eq!(
+        reply.status,
+        StatusCode::BAD_REQUEST,
+        "nothing selected and nothing named: {}",
+        reply.body
+    );
+    assert_eq!(wire.byte_count(), 0, "a refused start sends nothing");
+
+    let entry = state.devices().entry("dishwasher").expect("registered");
+    let selected = entry
+        .model
+        .entities()
+        .values()
+        .find(|entity| entity.kind == hc_profile::EntityKind::SelectedProgram)
+        .expect("a selectedProgram")
+        .uid;
+    let program = *entry.model.programs().keys().next().expect("programmes");
+    shadow
+        .lock()
+        .set_optimistic(u64::from(selected), serde_json::Value::from(program));
+
+    let reply = common::send(
+        server::api::app(state.clone()),
+        start_request("dishwasher", None),
+    )
+    .await;
+    assert_eq!(reply.status, StatusCode::OK, "{}", reply.body);
+    assert_eq!(reply.json()["outcome"], "accepted");
+    let frame = only_frame(&wire);
+    assert_eq!(frame["resource"], "/ro/activeProgram");
+    assert_eq!(
+        frame["data"][0]["program"],
+        serde_json::Value::from(program)
+    );
+
+    let oven = state_with("oven", DeviceRole::Oven, "oven-tls.zip");
+    let (writer, wire) = installed_writer(ED_MSG_ID);
+    oven.writers().install("oven", writer);
+    let entry = oven.devices().entry("oven").expect("registered");
+    let (uid, key) = entry
+        .model
+        .programs()
+        .values()
+        .find_map(|program| Some((program.uid, program.key.clone()?)))
+        .expect("a named oven programme");
+    let reply = common::send(
+        server::api::app(oven.clone()),
+        start_request("oven", Some(&key)),
+    )
+    .await;
+    assert_eq!(reply.status, StatusCode::OK, "{}", reply.body);
+    let frame = only_frame(&wire);
+    assert_eq!(frame["resource"], "/ro/selectedProgram");
+    assert_eq!(frame["data"][0]["program"], serde_json::Value::from(uid));
+}
+
+/// `POST /api/devices/{slug}/program/stop` aborts whatever runs: the appliance's own
+/// `AbortProgram` command where it declares one, `DELETE /ro/activeProgram` where it does not.
+#[tokio::test]
+async fn the_stop_route_aborts_the_active_programme() {
+    for (slug, role, fixture, resource, action) in [
+        (
+            "dishwasher",
+            DeviceRole::Dishwasher,
+            "dishwasher-tls.zip",
+            "/ro/values",
+            "POST",
+        ),
+        (
+            "oven",
+            DeviceRole::Oven,
+            "oven-tls.zip",
+            "/ro/values",
+            "POST",
+        ),
+        (
+            "cooktop",
+            DeviceRole::Cooktop,
+            "hob-aes.zip",
+            "/ro/activeProgram",
+            "DELETE",
+        ),
+    ] {
+        let state = state_with(slug, role, fixture);
+        let (writer, wire) = installed_writer(ED_MSG_ID);
+        state.writers().install(slug, writer);
+        let request = Request::builder()
+            .method("POST")
+            .uri(format!("/api/devices/{slug}/program/stop"))
+            .header(TOKEN_HEADER, TEST_TOKEN)
+            .body(Body::empty())
+            .expect("a well-formed request");
+
+        let reply = common::send(server::api::app(state.clone()), request).await;
+        assert_eq!(reply.status, StatusCode::OK, "{slug}: {}", reply.body);
+        assert_eq!(reply.json()["outcome"], "accepted");
+        let frame = only_frame(&wire);
+        assert_eq!(frame["resource"], resource, "{slug}");
+        assert_eq!(frame["action"], action, "{slug}");
+        if action == "POST" {
+            assert_eq!(
+                frame["data"][0]["value"], true,
+                "{slug}: the command is written true"
+            );
+        } else {
+            assert!(
+                frame.get("data").is_none(),
+                "{slug}: a DELETE carries no data"
+            );
+        }
+    }
 }

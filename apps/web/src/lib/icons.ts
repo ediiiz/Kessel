@@ -23,6 +23,7 @@ export { default as ChevronDown } from '@lucide/svelte/icons/chevron-down';
 export { default as ChevronRight } from '@lucide/svelte/icons/chevron-right';
 export { default as CircleCheck } from '@lucide/svelte/icons/circle-check';
 export { default as CircleHelp } from '@lucide/svelte/icons/circle-help';
+export { default as CircleStop } from '@lucide/svelte/icons/circle-stop';
 export { default as Coffee } from '@lucide/svelte/icons/coffee';
 export { default as CookingPot } from '@lucide/svelte/icons/cooking-pot';
 export { default as DoorOpen } from '@lucide/svelte/icons/door-open';

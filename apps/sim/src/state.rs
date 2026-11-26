@@ -11,6 +11,8 @@ use serde_json::{Map, Value, json};
 
 /// Chance that a successful Setting/Option write is followed by a `/ro/descriptionChange`.
 const DESCRIPTION_CHANGE_PROBABILITY: f64 = 0.5;
+/// The command an appliance declares for aborting its programme.
+const ABORT_PROGRAM_KEY: &str = "BSH.Common.Command.AbortProgram";
 /// Where a remaining-time countdown restarts after reaching zero, in seconds.
 const REMAINING_TIME_START: i64 = 5400;
 /// How far the countdown moves per tick, in seconds.
@@ -155,21 +157,69 @@ impl Appliance {
         if items.is_empty() {
             return refuse("no items in the write");
         }
-        let changes = items
+        let mut changes = items
             .iter()
             .map(|item| self.check_item(item))
             .collect::<Result<Vec<_>, _>>()?;
+        // The appliance's abort command stops its programme, as it did on a real dishwasher.
+        let abort = self
+            .model
+            .entity_by_key(ABORT_PROGRAM_KEY)
+            .map(|entity| entity.uid);
+        if changes
+            .iter()
+            .any(|(uid, value)| Some(*uid) == abort && *value == json!(true))
+            && let Some(active) = self.uid_of_kind(EntityKind::ActiveProgram)
+        {
+            changes.push((active, json!(0)));
+        }
         self.apply(&changes);
         Ok(changes)
     }
 
-    /// Applies a `POST /ro/selectedProgram` (or `/ro/activeProgram`) body
-    /// `[{"program":uid,"options":[…]}]`: the program becomes both selected and active.
+    /// Applies a `POST /ro/selectedProgram` body `[{"program":uid,"options":[…]}]`.
+    ///
+    /// Where the profile declares a writable `<activeProgram>` (the dishwasher) this only selects
+    /// the program, and a `POST /ro/activeProgram` starts it. Where it does not (the cooktop and the
+    /// oven), the selection is the start.
+    ///
+    /// # Errors
+    ///
+    /// A [`Refusal`] for an unknown program or an invalid option.
+    pub fn select_program(&mut self, data: &[Value]) -> Result<Vec<Change>, Refusal> {
+        // Kessel's own test for a writable feature: `access="none"` counts.
+        let starts_separately = self
+            .uid_of_kind(EntityKind::ActiveProgram)
+            .and_then(|uid| self.model.entity(uid))
+            .and_then(|entity| entity.access.as_ref())
+            .is_some_and(|access| access.is_writable() || matches!(access, Access::None));
+        let kinds: &[EntityKind] = if starts_separately {
+            &[EntityKind::SelectedProgram]
+        } else {
+            &[EntityKind::SelectedProgram, EntityKind::ActiveProgram]
+        };
+        self.apply_program(data, kinds)
+    }
+
+    /// Applies a `POST /ro/activeProgram` body `[{"program":uid,"options":[…]}]`: the program
+    /// becomes both selected and active.
     ///
     /// # Errors
     ///
     /// A [`Refusal`] for an unknown program or an invalid option.
     pub fn start_program(&mut self, data: &[Value]) -> Result<Vec<Change>, Refusal> {
+        self.apply_program(
+            data,
+            &[EntityKind::SelectedProgram, EntityKind::ActiveProgram],
+        )
+    }
+
+    /// Validates a programme body and points each of `kinds` at its program.
+    fn apply_program(
+        &mut self,
+        data: &[Value],
+        kinds: &[EntityKind],
+    ) -> Result<Vec<Change>, Refusal> {
         let Some(body) = data.first() else {
             return refuse("no program in the request");
         };
@@ -189,7 +239,7 @@ impl Appliance {
             .flatten()
             .map(|item| self.check_item(item))
             .collect::<Result<Vec<_>, _>>()?;
-        for kind in [EntityKind::SelectedProgram, EntityKind::ActiveProgram] {
+        for &kind in kinds {
             if let Some(uid) = self.uid_of_kind(kind) {
                 changes.push((uid, json!(program)));
             }

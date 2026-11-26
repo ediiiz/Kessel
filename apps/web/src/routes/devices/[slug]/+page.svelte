@@ -29,6 +29,7 @@
   import FeatureSheet from '$lib/components/FeatureSheet.svelte';
   import ProgramList from '$lib/components/ProgramList.svelte';
   import ProgrammeCard from '$lib/components/ProgrammeCard.svelte';
+  import { programmeWriter } from '$lib/programme';
   import QuickActions from '$lib/components/QuickActions.svelte';
   import SessionControl from '$lib/components/SessionControl.svelte';
   import { APP_NAME } from '$lib/index.js';
@@ -100,6 +101,8 @@
 
   const write = (target: string, request: WriteRequest): Promise<WriteOutcome> =>
     api.write(target, request);
+  /** The programme card's select, start and stop, each sent to the route that carries it. */
+  const programmeWrite = programmeWriter(api);
 
   $effect(() => {
     void load(slug);
@@ -216,7 +219,14 @@
         {/if}
 
         <div class="relative z-30 flex flex-col gap-7">
-          <ProgrammeCard {entities} {programs} index={2} />
+          <ProgrammeCard
+            {entities}
+            {programs}
+            {slug}
+            role={device?.role ?? ''}
+            write={device !== null && device.ever_writable ? programmeWrite : undefined}
+            index={2}
+          />
 
           {#if device !== null && device.ever_writable}
             <SessionControl {api} />

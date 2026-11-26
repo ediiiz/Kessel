@@ -16,8 +16,8 @@ use crate::onboarding::{self, MAX_PROFILE_UPLOAD_BYTES, OnboardingError};
 use crate::state::AppState;
 use crate::types::{
     ApiError, CommitRequest, DeviceSummary, EntityDescriptor, Health, ManualHostRequest,
-    OnboardingResult, ProfilePreview, ProgramDescriptor, RestartOutcome, SessionView, WriteOutcome,
-    WriteRequest,
+    OnboardingResult, ProfilePreview, ProgramDescriptor, RestartOutcome, SessionView,
+    StartProgramRequest, WriteOutcome, WriteRequest,
 };
 use crate::write;
 
@@ -36,6 +36,8 @@ pub fn app(state: AppState) -> Router {
         .route("/api/devices/{slug}/entities", get(entities))
         .route("/api/devices/{slug}/programs", get(programs))
         .route("/api/devices/{slug}/write", post(write_feature))
+        .route("/api/devices/{slug}/program/start", post(start_program))
+        .route("/api/devices/{slug}/program/stop", post(stop_program))
         .route("/api/events", get(crate::sse::events))
         .route("/api/config", get(config).put(save_config))
         .route("/api/restart", post(restart))
@@ -476,20 +478,7 @@ async fn write_feature(
     )
     .map_err(|error| ApiFailure::bad_request(error.to_string()))?;
 
-    // Both cases go through a `GuardedWriter`; they differ only in what is behind the guard:
-    //
-    // 1. a live session — the device's writer, installed at CONNECTED, using that connection's own
-    //    `msgID` allocator;
-    // 2. no live session — a refusing transport, so the write fails closed. Nothing is queued for a
-    //    disconnected appliance.
-    let verdict = match state.writers().writer(&slug) {
-        Some(shared) => shared.lock().await.write(&command).await,
-        None => {
-            GuardedWriter::new(write::no_live_session_transport())
-                .write(&command)
-                .await
-        }
-    };
+    let verdict = guarded_write(&state, &slug, &command).await;
     // The feature key and slug are safe to log; appliance identifiers never are.
     tracing::info!(
         device = %slug,
@@ -497,13 +486,100 @@ async fn write_feature(
         allowed = verdict.is_ok(),
         "write decision at the guard"
     );
+    Ok(outcome(verdict))
+}
+
+/// `POST /api/devices/{slug}/program/start` — start a programme, **through the guard**.
+///
+/// The named programme, or the one the appliance reports as selected, sent as the frame the
+/// appliance's own description calls for (`hc_core::write::start_command`). Nothing here decides
+/// whether this appliance should start; the appliance answers.
+async fn start_program(
+    State(state): State<AppState>,
+    Path(slug): Path<String>,
+    Json(request): Json<StartProgramRequest>,
+) -> Result<(StatusCode, Json<WriteOutcome>), ApiFailure> {
+    let entry = state
+        .devices()
+        .entry(&slug)
+        .ok_or_else(|| ApiFailure::not_found("no such device"))?;
+    // A snapshot, so the shadow's lock is not held across the write.
+    let values = state
+        .shadows()
+        .shadow(&slug)
+        .map(|shadow| shadow.lock().clone());
+    let command = hc_core::bridge::build_start_command(
+        &entry.model,
+        values.as_ref(),
+        request.program.as_deref(),
+    )
+    .map_err(|error| ApiFailure::bad_request(error.to_string()))?;
+    let verdict = guarded_write(&state, &slug, &command).await;
+    tracing::info!(
+        device = %slug,
+        resource = %command.resource,
+        allowed = verdict.is_ok(),
+        "programme start at the guard"
+    );
+    Ok(outcome(verdict))
+}
+
+/// `POST /api/devices/{slug}/program/stop` — abort whatever the appliance runs, **through the guard**.
+///
+/// The appliance's own `AbortProgram` command where it declares one, else
+/// `DELETE /ro/activeProgram` (`hc_core::bridge::stop_program_command`). Either also cancels a
+/// delayed start. No body.
+async fn stop_program(
+    State(state): State<AppState>,
+    Path(slug): Path<String>,
+) -> Result<(StatusCode, Json<WriteOutcome>), ApiFailure> {
+    let entry = state
+        .devices()
+        .entry(&slug)
+        .ok_or_else(|| ApiFailure::not_found("no such device"))?;
+    let command = hc_core::bridge::stop_program_command(&entry.model);
+    let verdict = guarded_write(&state, &slug, &command).await;
+    tracing::info!(
+        device = %slug,
+        resource = %command.resource,
+        allowed = verdict.is_ok(),
+        "programme stop at the guard"
+    );
+    Ok(outcome(verdict))
+}
+
+/// Hands `command` to the device's writer, or to a refusing transport when it has no live session.
+///
+/// Both go through a `GuardedWriter`; they differ only in what is behind the guard:
+///
+/// 1. a live session — the device's writer, installed at CONNECTED, using that connection's own
+///    `msgID` allocator;
+/// 2. no live session — a refusing transport, so the write fails closed. Nothing is queued for a
+///    disconnected appliance.
+async fn guarded_write(
+    state: &AppState,
+    slug: &str,
+    command: &hc_core::write::WriteCommand,
+) -> Result<(), WriteError> {
+    match state.writers().writer(slug) {
+        Some(shared) => shared.lock().await.write(command).await,
+        None => {
+            GuardedWriter::new(write::no_live_session_transport())
+                .write(command)
+                .await
+        }
+    }
+}
+
+/// The HTTP answer for a guard verdict.
+fn outcome(verdict: Result<(), WriteError>) -> (StatusCode, Json<WriteOutcome>) {
     match verdict {
-        Ok(()) => Ok((StatusCode::OK, Json(WriteOutcome::Accepted))),
-        Err(WriteError::Transport(reason)) => Ok((
+        Ok(()) => (StatusCode::OK, Json(WriteOutcome::Accepted)),
+        Err(WriteError::Transport(reason)) => (
             StatusCode::SERVICE_UNAVAILABLE,
             Json(WriteOutcome::Refused { reason }),
-        )),
-        Err(error) => Ok(refused(error.to_string())),
+        ),
+        Err(error) => refused(error.to_string()),
     }
 }
 

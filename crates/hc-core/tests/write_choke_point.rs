@@ -23,9 +23,7 @@ use std::path::PathBuf;
 
 use common::{RecordedWire, RecordingTransport, recording_write_path, seeded_session};
 use hc_core::bridge::take_guarded_session;
-use hc_core::write::{
-    DeviceRole, GuardedWriter, StartRequest, WriteCommand, WriteError, start_command,
-};
+use hc_core::write::{DeviceRole, GuardedWriter, WriteCommand, WriteError, start_command};
 use serde_json::json;
 
 /// The synthetic `sID` and appliance `edMsgID` the wired-path cases run under. Both are
@@ -33,17 +31,18 @@ use serde_json::json;
 const S_ID: u64 = 1;
 const ED_MSG_ID: u64 = 1;
 
+/// The scrubbed fixture of that name, parsed.
+fn fixture_model(name: &str) -> hc_profile::Profile {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../hc-profile/tests/fixtures")
+        .join(name);
+    hc_profile::Profile::from_zip_bytes(&std::fs::read(path).expect("fixture"))
+        .expect("the fixture parses")
+}
+
 fn hob_start() -> WriteCommand {
-    // A fully-formed hob program start: the most dangerous command the mapping can produce.
-    start_command(
-        &DeviceRole::Cooktop,
-        &StartRequest {
-            program_uid: 0x1234,
-            start_option_uid: 0,
-            relative_time: 0,
-        },
-    )
-    .expect("the hob start command is constructible — that is exactly why the guard must exist")
+    // A fully-formed hob program start: the most consequential command the mapping can produce.
+    start_command(fixture_model("hob-aes.zip").model(), 0x1234, Vec::new())
 }
 
 fn oven_write() -> WriteCommand {
@@ -85,14 +84,10 @@ async fn every_role_reaches_the_transport_through_the_choke_point() {
 
 fn dishwasher_start() -> WriteCommand {
     start_command(
-        &DeviceRole::Dishwasher,
-        &StartRequest {
-            program_uid: 0x1000,
-            start_option_uid: 0x022E,
-            relative_time: 0,
-        },
+        fixture_model("dishwasher-tls.zip").model(),
+        0x2000,
+        Vec::new(),
     )
-    .expect("dishwasher start is constructible")
 }
 
 /// A guarded write fails only if the transport fails. (`check_access` refuses separately, based on

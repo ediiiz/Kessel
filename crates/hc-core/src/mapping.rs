@@ -236,7 +236,7 @@ pub struct ProgramEntry {
     pub key: Option<String>,
     /// The normalised name (lower-cased, `.`→`_`), when the program is named.
     pub normalized_name: Option<String>,
-    /// `execution` (`none` / `selectOnly` / `selectAndStart`), verbatim; `start` is gated on it.
+    /// `execution` (`none` / `selectOnly` / `selectAndStart`), verbatim, for the operator to read.
     pub execution: Option<String>,
 }
 

@@ -400,26 +400,58 @@ async fn writes_sometimes_revise_another_options_description() {
     );
 }
 
+/// The uid of the one entity of `kind` in `profile`.
+fn uid_of_kind(profile: &Profile, kind: EntityKind) -> u16 {
+    profile
+        .model()
+        .entities()
+        .values()
+        .find(|entity| entity.kind == kind)
+        .unwrap()
+        .uid
+}
+
+#[tokio::test]
+async fn selecting_does_not_start_where_active_program_is_writable() {
+    // The dishwasher declares a writable `<activeProgram>`: selecting only selects.
+    let (addr, appliance, profile) = start().await;
+    let (mut ws, s_id) = raw_client(addr, &profile).await;
+    let program = *profile.model().programs().keys().nth(1).unwrap();
+    let active = uid_of_kind(&profile, EntityKind::ActiveProgram);
+    let selected = uid_of_kind(&profile, EntityKind::SelectedProgram);
+
+    let mut seen = Vec::new();
+    let body = json!([{"program": program, "options": []}]);
+    request(&mut ws, (s_id, 399), "POST", "/ro/selectedProgram", body).await;
+    let response = response_to(&mut ws, 399, &mut seen).await;
+    assert!(
+        response.get("code").is_none(),
+        "program selection accepted: {response}"
+    );
+    let notify = notify_for(&mut ws, "/ro/values", selected, &mut seen).await;
+    assert_eq!(
+        item_value(&notify, selected),
+        json!(program),
+        "selected program notified"
+    );
+    assert_eq!(
+        appliance.lock().value(active),
+        Some(&json!(0)),
+        "a selection does not start the dishwasher"
+    );
+}
+
 #[tokio::test]
 async fn programs_start_and_stop() {
     let (addr, appliance, profile) = start().await;
     let (mut ws, s_id) = raw_client(addr, &profile).await;
-    let model = profile.model();
-    let program = *model.programs().keys().nth(1).unwrap();
-    let uid_of = |kind| {
-        model
-            .entities()
-            .values()
-            .find(|entity| entity.kind == kind)
-            .unwrap()
-            .uid
-    };
-    let active = uid_of(EntityKind::ActiveProgram);
-    let selected = uid_of(EntityKind::SelectedProgram);
+    let program = *profile.model().programs().keys().nth(1).unwrap();
+    let active = uid_of_kind(&profile, EntityKind::ActiveProgram);
+    let selected = uid_of_kind(&profile, EntityKind::SelectedProgram);
 
     let mut seen = Vec::new();
     let body = json!([{"program": program, "options": []}]);
-    request(&mut ws, (s_id, 400), "POST", "/ro/selectedProgram", body).await;
+    request(&mut ws, (s_id, 400), "POST", "/ro/activeProgram", body).await;
     let response = response_to(&mut ws, 400, &mut seen).await;
     assert!(
         response.get("code").is_none(),
@@ -475,6 +507,43 @@ async fn programs_start_and_stop() {
         Some(&json!(program)),
         "selection kept"
     );
+}
+
+/// Writing the dishwasher's `AbortProgram` command stops its programme, as it did on the real
+/// appliance, so a stop through the command is visible in the simulator too.
+#[tokio::test]
+async fn the_abort_command_stops_the_running_programme() {
+    let (addr, appliance, profile) = start().await;
+    let (mut ws, s_id) = raw_client(addr, &profile).await;
+    let program = *profile.model().programs().keys().nth(1).unwrap();
+    let active = uid_of_kind(&profile, EntityKind::ActiveProgram);
+    let abort = profile
+        .model()
+        .entity_by_key("BSH.Common.Command.AbortProgram")
+        .expect("the dishwasher declares AbortProgram")
+        .uid;
+
+    let mut seen = Vec::new();
+    let body = json!([{"program": program, "options": []}]);
+    request(&mut ws, (s_id, 500), "POST", "/ro/activeProgram", body).await;
+    let response = response_to(&mut ws, 500, &mut seen).await;
+    assert!(response.get("code").is_none(), "start accepted: {response}");
+    let notify = notify_for(&mut ws, "/ro/values", active, &mut seen).await;
+    assert_eq!(
+        item_value(&notify, active),
+        json!(program),
+        "start notified"
+    );
+    // Only what follows the abort counts: the start's own NOTIFY also carries `active`.
+    seen.clear();
+
+    let body = json!([{"uid": abort, "value": true}]);
+    request(&mut ws, (s_id, 501), "POST", "/ro/values", body).await;
+    let response = response_to(&mut ws, 501, &mut seen).await;
+    assert!(response.get("code").is_none(), "abort accepted: {response}");
+    let notify = notify_for(&mut ws, "/ro/values", active, &mut seen).await;
+    assert_eq!(item_value(&notify, active), json!(0), "stop notified");
+    assert_eq!(appliance.lock().value(active), Some(&json!(0)));
 }
 
 #[tokio::test]

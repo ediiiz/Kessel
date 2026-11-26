@@ -29,17 +29,26 @@ const VALUES_RESOURCE: &str = "/ro/values";
 
 /// The program-select resource. A command aimed here becomes a program-start frame
 /// (`hc_proto::Body::Program`), never a `/ro/values` write.
-const SELECTED_PROGRAM_RESOURCE: &str = "/ro/selectedProgram";
+pub(crate) const SELECTED_PROGRAM_RESOURCE: &str = "/ro/selectedProgram";
 
-/// The active-program resource. A command aimed here is a `DELETE`, which aborts the running
-/// programme; it is the only write that carries no body and addresses no uid.
-const ACTIVE_PROGRAM_RESOURCE: &str = "/ro/activeProgram";
+/// The active-program resource. A command aimed here with a programme uid is a `POST` that starts
+/// it; one with no uid is a `DELETE`, which aborts the running programme and is the only write that
+/// carries no body.
+pub(crate) const ACTIVE_PROGRAM_RESOURCE: &str = "/ro/activeProgram";
 
 /// The device-relative `…/set` topic of the synthetic stop control (`crate::discovery`).
 ///
 /// It backs no feature, so it is subscribed and routed explicitly. Feature paths never begin with
-/// an underscore, so `_control/` cannot collide with one.
-pub const STOP_PROGRAM_TOPIC: &str = "_control/stop_program";
+/// an underscore, so `_control/` cannot collide with one. It ends in `/set` like every command
+/// topic, because the daemon routes only `…/set` topics as commands.
+pub const STOP_PROGRAM_TOPIC: &str = "_control/stop_program/set";
+
+/// The device-relative `…/set` topic of the synthetic start control (`crate::discovery`).
+///
+/// Like [`STOP_PROGRAM_TOPIC`] it backs no feature. A payload naming a programme starts that
+/// programme; an empty payload or the button's press payload starts the selected one, which needs
+/// the appliance's current values, so only [`handle_set`] routes it ([`SetContext::with_values`]).
+pub const START_PROGRAM_TOPIC: &str = "_control/start_program/set";
 
 /// Home Assistant's own status topic, where it publishes its birth (`online`) and will (`offline`).
 ///
@@ -89,6 +98,9 @@ pub enum SetError {
     /// The payload was not a value this feature accepts.
     #[error("invalid set payload: {0}")]
     InvalidPayload(String),
+    /// A start of "the selected programme" was asked for, but the appliance reports none.
+    #[error("no programme is selected on the appliance; select one or name the programme to start")]
+    NoProgramSelected,
     /// The write failed (see [`WriteError`]).
     #[error(transparent)]
     Write(#[from] WriteError),
@@ -468,7 +480,8 @@ fn value_for_write(model: &EntityModel, entity: &Entity, payload: &str) -> Resul
 ///
 /// This is the exact command [`handle_set`] hands to the guard: usually a `/ro/values` write of the
 /// feature's uid and the converted value; a program selection or the stop control become their own
-/// frames. [`to_outgoing`] turns it into the wire frame.
+/// frames. [`to_outgoing`] turns it into the wire frame. The start control is not routed here: it
+/// needs the appliance's current values, which only [`handle_set`] is given.
 ///
 /// # Errors
 ///
@@ -482,7 +495,7 @@ pub fn build_write_command(
 ) -> Result<WriteCommand, SetError> {
     // The synthetic controls back no feature, so the mapping lookup below would refuse them.
     if relative_set_topic == STOP_PROGRAM_TOPIC {
-        return Ok(stop_program_command());
+        return Ok(stop_program_command(model));
     }
     let entry = mapping
         .entries()
@@ -492,9 +505,14 @@ pub fn build_write_command(
     let entity = model
         .entity(entry.uid)
         .ok_or(SetError::UnknownEntity(entry.uid))?;
-    // A programme pointer takes a different frame entirely — see `select_program_command`.
-    if matches!(entity.kind, hc_profile::EntityKind::SelectedProgram) {
-        return select_program_command(model, payload);
+    // A programme pointer takes a different frame entirely: a selection, or a start.
+    match entity.kind {
+        hc_profile::EntityKind::SelectedProgram => return select_program_command(model, payload),
+        hc_profile::EntityKind::ActiveProgram => {
+            let program = declared_program(model, payload)?;
+            return Ok(crate::write::start_command(model, program.uid, Vec::new()));
+        }
+        _ => {}
     }
     let value = value_for_write(model, entity, payload)?;
     Ok(WriteCommand {
@@ -507,11 +525,31 @@ pub fn build_write_command(
     })
 }
 
-/// The command the synthetic stop control becomes: `DELETE /ro/activeProgram`, no body, no uid.
+/// The key of the command an appliance declares for aborting its programme.
+const ABORT_PROGRAM_KEY: &str = "BSH.Common.Command.AbortProgram";
+
+/// The command a programme stop becomes, chosen from the appliance's own description.
 ///
-/// This aborts whatever the appliance is running. The payload is ignored: a button press has only
-/// one meaning.
-fn stop_program_command() -> WriteCommand {
+/// Where the appliance declares `BSH.Common.Command.AbortProgram`, stop writes it `true` on
+/// `/ro/values` like any other command. That is the appliance's own way to stop, and it aborts a
+/// delayed start too. On a real dishwasher, `DELETE /ro/activeProgram` was answered by the appliance
+/// closing the connection, while the abort command stopped the programme. An appliance that
+/// declares no such command gets `DELETE /ro/activeProgram`, no body, no uid, as
+/// go-homeconnect2mqtt sends it; whether it accepts that is its answer.
+///
+/// The MQTT stop control ignores its payload: a button press has only one meaning.
+#[must_use]
+pub fn stop_program_command(model: &EntityModel) -> WriteCommand {
+    if let Some(abort) = model.entity_by_key(ABORT_PROGRAM_KEY) {
+        return WriteCommand {
+            resource: VALUES_RESOURCE.to_owned(),
+            target_uid: Some(abort.uid),
+            field: None,
+            value: Value::Bool(true),
+            validate: true,
+            options: Vec::new(),
+        };
+    }
     WriteCommand {
         resource: ACTIVE_PROGRAM_RESOURCE.to_owned(),
         // No uid: the resource is the whole address, so this is its own `WriteIntent`.
@@ -523,24 +561,16 @@ fn stop_program_command() -> WriteCommand {
     }
 }
 
-/// The command a programme selection becomes: a program-start frame on `/ro/selectedProgram`.
+/// The command a programme selection becomes: a programme frame on `/ro/selectedProgram`.
 ///
-/// This starts a programme on the appliance; on a cooktop or oven that is a physical act. The
+/// On a cooktop or oven this starts the programme; on an appliance with a writable
+/// `<activeProgram>` (the dishwasher) it only selects, and [`build_start_command`] starts it. The
 /// frame addresses the programme by uid, not the pointer feature, since there is no known
 /// `/ro/values` form for a selection. The payload must name a programme this appliance declares
 /// (the `select` options come from the same list), so a typo is an error rather than a start.
 /// `options` is left empty: a caller that knows a programme's options builds the command directly.
 fn select_program_command(model: &EntityModel, payload: &str) -> Result<WriteCommand, SetError> {
-    let wanted = payload.trim();
-    let program = model
-        .programs()
-        .values()
-        .find(|program| program.key.as_deref() == Some(wanted))
-        .ok_or_else(|| {
-            SetError::InvalidPayload(format!(
-                "'{wanted}' is not a programme this appliance declares"
-            ))
-        })?;
+    let program = declared_program(model, payload)?;
     Ok(WriteCommand {
         resource: SELECTED_PROGRAM_RESOURCE.to_owned(),
         // The programme's uid, emitted as the frame's `program` field.
@@ -552,6 +582,89 @@ fn select_program_command(model: &EntityModel, payload: &str) -> Result<WriteCom
         options: Vec::new(),
     })
 }
+
+/// The programme this appliance declares under the dotted key `payload`, so a typo is an error
+/// rather than a start.
+fn declared_program<'m>(
+    model: &'m EntityModel,
+    payload: &str,
+) -> Result<&'m hc_profile::Program, SetError> {
+    let wanted = payload.trim();
+    model.program_by_key(wanted).ok_or_else(|| {
+        SetError::InvalidPayload(format!(
+            "'{wanted}' is not a programme this appliance declares"
+        ))
+    })
+}
+
+/// The command a programme start becomes, by [`crate::write::start_command`]: the frame this
+/// appliance's description calls for, carrying a delayed start when one is set.
+///
+/// `program` names the programme by its dotted key; `None` starts the programme `values` reports as
+/// selected. A delayed start the operator set travels as the `StartInRelative` option, the form
+/// hcpy documents, when the programme declares that option; every other option stays as the
+/// appliance holds it.
+///
+/// This starts a programme on the appliance, whatever kind it is; the appliance answers for
+/// whether it does.
+///
+/// # Errors
+///
+/// - [`SetError::InvalidPayload`] when `program` names no declared programme;
+/// - [`SetError::NoProgramSelected`] when `program` is `None` and there are no values, or the
+///   selection is `0` (idle) or a uid this appliance does not declare.
+pub fn build_start_command(
+    model: &EntityModel,
+    values: Option<&crate::shadow::Shadow>,
+    program: Option<&str>,
+) -> Result<WriteCommand, SetError> {
+    let current = |uid: u16| {
+        values?
+            .get(u64::from(uid))
+            .map(crate::shadow::ShadowEntry::value)
+    };
+    let program = match program {
+        Some(key) => declared_program(model, key)?,
+        None => model
+            .entities()
+            .values()
+            .find(|entity| matches!(entity.kind, hc_profile::EntityKind::SelectedProgram))
+            .and_then(|selected| current(selected.uid))
+            .and_then(Value::as_u64)
+            .and_then(|uid| u16::try_from(uid).ok())
+            .and_then(|uid| model.program(uid))
+            .ok_or(SetError::NoProgramSelected)?,
+    };
+    let delay = model
+        .entity_by_key(START_IN_RELATIVE_KEY)
+        .filter(|start_in| {
+            program
+                .options
+                .iter()
+                .any(|option| option.ref_uid == start_in.uid)
+        })
+        .and_then(|start_in| {
+            let seconds = current(start_in.uid)?
+                .as_i64()
+                .filter(|seconds| *seconds > 0)?;
+            Some((start_in.uid, Value::from(seconds)))
+        });
+    Ok(crate::write::start_command(
+        model,
+        program.uid,
+        delay.into_iter().collect(),
+    ))
+}
+
+/// The programme a start control payload names, or `None` for "the selected one": an empty
+/// payload, or the press payload Home Assistant's button sends.
+fn named_programme(payload: &str) -> Option<&str> {
+    let payload = payload.trim();
+    (!payload.is_empty() && payload != crate::discovery::BUTTON_PRESS_PAYLOAD).then_some(payload)
+}
+
+/// The option a delayed start is written to.
+const START_IN_RELATIVE_KEY: &str = "BSH.Common.Option.StartInRelative";
 
 /// Routes an incoming `…/set` message to a device write through the guard.
 ///
@@ -571,9 +684,13 @@ pub async fn handle_set<T: WriteTransport>(
     // HA sends back the label it was announced, so a contributed member name is mapped back to
     // the appliance's own member first. A payload that is already a declared member is never
     // reinterpreted (see `PresentedEntity::raw_member`).
-    let resolved =
-        resolve_member_payload(device.mapping, relative_set_topic, payload, device.names);
-    let command = build_write_command(device.model, device.mapping, relative_set_topic, &resolved)?;
+    let command = if relative_set_topic == START_PROGRAM_TOPIC {
+        build_start_command(device.model, device.values, named_programme(payload))?
+    } else {
+        let resolved =
+            resolve_member_payload(device.mapping, relative_set_topic, payload, device.names);
+        build_write_command(device.model, device.mapping, relative_set_topic, &resolved)?
+    };
     // The only path to the transport: it is private to the guard.
     writer.write(&command).await.map_err(SetError::from)
 }
@@ -592,6 +709,9 @@ pub struct SetContext<'a> {
     /// The naming catalogue, so a contributed member name Home Assistant was given is understood
     /// coming back. [`crate::discovery::DerivedNames`] for a caller with none.
     pub names: &'a dyn crate::discovery::FeatureNaming,
+    /// The appliance's current values, which the start control reads its programme from. `None`
+    /// refuses a start rather than guessing a programme.
+    pub values: Option<&'a crate::shadow::Shadow>,
 }
 
 impl<'a> SetContext<'a> {
@@ -602,6 +722,16 @@ impl<'a> SetContext<'a> {
             model,
             mapping,
             names: &crate::discovery::DerivedNames,
+            values: None,
+        }
+    }
+
+    /// The same context, starting programmes from the selection `values` reports.
+    #[must_use]
+    pub const fn with_values(self, values: &'a crate::shadow::Shadow) -> Self {
+        Self {
+            values: Some(values),
+            ..self
         }
     }
 
@@ -650,7 +780,7 @@ fn resolve_member_payload<'p>(
 pub enum WriteFrameError {
     /// A resource with no known frame; everything outside the implemented resources is refused.
     #[error(
-        "no write frame is implemented for resource '{0}' (/ro/values and /ro/selectedProgram are)"
+        "no write frame is implemented for resource '{0}' (/ro/values, /ro/selectedProgram and /ro/activeProgram are)"
     )]
     UnsupportedResource(String),
     /// A write with no `target_uid`; features and programs are addressed by `uid` only.
@@ -740,8 +870,8 @@ impl<Si, E> SessionWriter<Si, E> {
 
 /// Converts a [`WriteCommand`] into the exact frame that goes on the wire.
 ///
-/// That is a `POST /ro/values` with one `{"uid":…,"value":…}` item, a program start on
-/// `/ro/selectedProgram`, or a `DELETE /ro/activeProgram`.
+/// That is a `POST /ro/values` with one `{"uid":…,"value":…}` item, a programme frame on
+/// `/ro/selectedProgram` or `/ro/activeProgram`, or a `DELETE /ro/activeProgram`.
 ///
 /// Building a frame does not send it. `command.field` and `command.validate` are not wire fields
 /// and are ignored: the wire addresses a feature by `uid` alone.
@@ -771,24 +901,43 @@ fn validate_write(command: &WriteCommand) -> Result<WriteIntent, WriteFrameError
             command.target_uid,
             &command.value,
         )?)),
-        SELECTED_PROGRAM_RESOURCE => {
-            let program = command
-                .target_uid
-                .ok_or(WriteFrameError::MissingTargetUid)?;
-            let mut options = Vec::with_capacity(command.options.len());
-            for (uid, value) in &command.options {
-                options.push(write_item(Some(*uid), value)?);
-            }
-            Ok(WriteIntent::Program {
-                program: u32::from(program),
-                options,
-            })
+        SELECTED_PROGRAM_RESOURCE => program_intent(command, ProgramResource::Selected),
+        ACTIVE_PROGRAM_RESOURCE if command.target_uid.is_some() => {
+            program_intent(command, ProgramResource::Active)
         }
         // The stop control: no items and no uid, so nothing to validate.
         ACTIVE_PROGRAM_RESOURCE => Ok(WriteIntent::StopProgram),
         // Default-deny: a resource with no known frame is refused rather than guessed at.
         other => Err(WriteFrameError::UnsupportedResource(other.to_owned())),
     }
+}
+
+/// A programme frame on `resource`: the programme uid plus its options, in wire order.
+fn program_intent(
+    command: &WriteCommand,
+    resource: ProgramResource,
+) -> Result<WriteIntent, WriteFrameError> {
+    let program = command
+        .target_uid
+        .ok_or(WriteFrameError::MissingTargetUid)?;
+    let mut options = Vec::with_capacity(command.options.len());
+    for (uid, value) in &command.options {
+        options.push(write_item(Some(*uid), value)?);
+    }
+    Ok(WriteIntent::Program {
+        resource,
+        program: u32::from(program),
+        options,
+    })
+}
+
+/// Which resource a programme frame is posted to.
+#[derive(Debug, Clone, Copy)]
+enum ProgramResource {
+    /// `/ro/selectedProgram`: selects, and on a cooktop or oven also starts.
+    Selected,
+    /// `/ro/activeProgram`: starts.
+    Active,
 }
 
 /// One `{"uid","value"}` item from a uid and a JSON value.
@@ -803,8 +952,10 @@ fn write_item(uid: Option<u16>, value: &Value) -> Result<WriteItem, WriteFrameEr
 enum WriteIntent {
     /// A `/ro/values` feature write: one item.
     Feature(WriteItem),
-    /// A `/ro/selectedProgram` program start: a program uid plus its options.
+    /// A programme selection or start: a program uid plus its options.
     Program {
+        /// Where it is posted.
+        resource: ProgramResource,
         /// The program uid.
         program: u32,
         /// Its options, in wire order.
@@ -831,7 +982,18 @@ fn frame_for_intent(
                 .map_err(|error| WriteFrameError::Frame(error.to_string()))
         }
         // Infallible: an empty options list is legal and emits `"options":[]` (`hc_proto::Body::Program`).
-        WriteIntent::Program { program, options } => Ok(OutgoingMessage::program_start(
+        WriteIntent::Program {
+            resource: ProgramResource::Selected,
+            program,
+            options,
+        } => Ok(OutgoingMessage::program_start(
+            s_id, msg_id, version, program, options,
+        )),
+        WriteIntent::Program {
+            resource: ProgramResource::Active,
+            program,
+            options,
+        } => Ok(OutgoingMessage::program_activate(
             s_id, msg_id, version, program, options,
         )),
         // `bare` emits `Body::Empty`, which omits the `data` key rather than sending `null` or `[]`.
