@@ -11,7 +11,7 @@
   import type { EntityDescriptor, ProgramDescriptor } from '$lib/api-types';
   import { Play, Timer } from '$lib/icons';
   import { isHeating } from '$lib/appliance';
-  import { displayValue, progressPercent } from '$lib/value';
+  import { displayValue, programFor, progressPercent } from '$lib/value';
   import { enter, flash } from '$lib/motion';
   import { WriteGate, type Writer } from '$lib/write.svelte';
   import WriteConfirmation from './WriteConfirmation.svelte';
@@ -55,14 +55,12 @@
     remaining === undefined ? null : displayValue(remaining.feature_key, remaining.value),
   );
 
-  /** The selected programme, when the appliance reports one this profile names. */
-  const startable = $derived(
-    running || selected === undefined
-      ? undefined
-      : programs.find(
-          (program) => String(program.uid) === selected.value && program.feature_key !== null,
-        ),
-  );
+  /** The selected programme, when the appliance reports one this profile names by key. */
+  const startable = $derived.by(() => {
+    const program =
+      running || selected === undefined ? undefined : programFor(selected.value, programs);
+    return program?.feature_key === null ? null : (program ?? null);
+  });
 
   const gate = new WriteGate();
   const confirmFirst = $derived(isHeating(role));
@@ -106,7 +104,7 @@
       {/if}
     </div>
 
-    {#if start !== undefined && startable !== undefined}
+    {#if start !== undefined && startable !== null}
       {@const program = startable}
       <button
         type="button"

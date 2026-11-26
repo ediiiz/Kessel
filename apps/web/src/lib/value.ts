@@ -115,12 +115,20 @@ export interface ProgramName {
   readonly label: string;
 }
 
+/**
+ * The programme a pointer value refers to, or `undefined`. The daemon reports a pointer as the
+ * programme's dotted key when the profile names it and as the raw uid otherwise, so both match.
+ */
+export function programFor<P extends ProgramName>(
+  value: string | null,
+  programs: readonly P[],
+): P | undefined {
+  return programs.find((program) => String(program.uid) === value || program.feature_key === value);
+}
+
 /** The name of the programme a value refers to, by uid or by dotted key; `null` if none matches. */
 export function programName(value: string, programs: readonly ProgramName[]): string | null {
-  const match = programs.find(
-    (program) => String(program.uid) === value || program.feature_key === value,
-  );
-  return match?.label ?? null;
+  return programFor(value, programs)?.label ?? null;
 }
 
 /** `{"length":n,"list":[…]}`, the shape the appliance's list values arrive in. */

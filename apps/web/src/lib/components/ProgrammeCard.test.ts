@@ -45,11 +45,23 @@ const PROGRAMS: ProgramDescriptor[] = [
   },
 ];
 
+/**
+ * The daemon reports a programme pointer as the programme's key when the profile names it, and as
+ * the raw uid otherwise (`hc_core::rendered_value`), so the key is the default here.
+ */
 function mount(
-  options: { active?: string; role?: string; start?: typeof refuse | undefined } = {},
+  options: {
+    active?: string;
+    selected?: string;
+    role?: string;
+    start?: typeof refuse | undefined;
+  } = {},
 ) {
   return render(ProgrammeCard, {
-    entities: [pointer('ActiveProgram', options.active ?? '0'), pointer('SelectedProgram', '8196')],
+    entities: [
+      pointer('ActiveProgram', options.active ?? '0'),
+      pointer('SelectedProgram', options.selected ?? ECO),
+    ],
     programs: PROGRAMS,
     slug: 'appliance',
     role: options.role ?? 'dishwasher',
@@ -77,6 +89,12 @@ describe('programme_card_starts_the_selected_programme', () => {
     toaster.destroy();
   });
 
+  it('also finds a selection reported as a raw uid', () => {
+    const view = mount({ selected: '8196', start: vi.fn(refuse) });
+    expect(view.query('programme-start')?.textContent).toContain('Start Eco 50');
+    view.destroy();
+  });
+
   it('asks first on an appliance that produces heat', () => {
     const start = vi.fn(refuse);
     const view = mount({ role: 'oven', start });
@@ -90,7 +108,7 @@ describe('programme_card_starts_the_selected_programme', () => {
   });
 
   it('offers no start while a programme is running, or when it cannot send', () => {
-    const running = mount({ active: '8196', start: vi.fn(refuse) });
+    const running = mount({ active: ECO, start: vi.fn(refuse) });
     expect(running.query('programme-start')).toBeNull();
     running.destroy();
 
