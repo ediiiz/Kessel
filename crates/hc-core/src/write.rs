@@ -142,8 +142,10 @@ fn access_label(access: &Access) -> String {
 /// - otherwise (the hob and the oven declare it `read`): a direct `POST /ro/selectedProgram`, which
 ///   is their start.
 ///
-/// "Writable" includes `access="none"`, as everywhere else on the write path. The appliance answers
-/// for whether the programme starts.
+/// "Writable" includes `access="none"`, as everywhere else on the write path. `model` is the
+/// profile's own description, so the path is fixed at onboarding: an appliance revising
+/// `<activeProgram>`'s access at runtime changes its mapping, not how it is started. The appliance
+/// answers for whether the programme starts.
 #[must_use]
 pub fn start_command(
     model: &EntityModel,
