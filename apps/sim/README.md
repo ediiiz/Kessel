@@ -39,7 +39,8 @@ accepted or refused.
 - `POST /ro/activeProgram` with `[{"program":uid,"options":[…]}]` selects and starts the program.
   `POST /ro/selectedProgram` with the same body only selects it when the profile declares a
   writable `<activeProgram>` (the dishwasher), and also starts it otherwise (the cooktop and the
-  oven). `DELETE /ro/activeProgram` sets the active program to 0.
+  oven). `DELETE /ro/activeProgram` sets the active program to 0, and so does writing the
+  profile's `BSH.Common.Command.AbortProgram` `true` through `POST /ro/values`.
 
 ## Onboard it in Kessel
 

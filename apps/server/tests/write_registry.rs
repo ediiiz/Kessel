@@ -558,8 +558,8 @@ async fn a_dishwasher_set_message_reaches_the_wire_through_the_mqtt_route() {
     );
 }
 
-/// Pressing the stop button reaches the wire as `DELETE /ro/activeProgram`. The control topic
-/// backs no feature, so this pins that the route resolves it at all.
+/// Pressing the stop button reaches the wire as the dishwasher's own `AbortProgram` command. The
+/// control topic backs no feature, so this pins that the route resolves it at all.
 #[tokio::test]
 async fn the_stop_button_reaches_the_wire_through_the_mqtt_route() {
     let state = state_with("dishwasher", DeviceRole::Dishwasher, "dishwasher-tls.zip");
@@ -576,8 +576,9 @@ async fn the_stop_button_reaches_the_wire_through_the_mqtt_route() {
     let frames = wire.frames.lock().clone();
     assert_eq!(frames.len(), 1, "exactly one frame");
     let frame: serde_json::Value = serde_json::from_slice(&frames[0]).expect("plaintext JSON");
-    assert_eq!(frame["resource"], "/ro/activeProgram");
-    assert_eq!(frame["action"], "DELETE");
+    assert_eq!(frame["resource"], "/ro/values");
+    assert_eq!(frame["action"], "POST");
+    assert_eq!(frame["data"][0]["value"], true);
 }
 
 /// Pressing the dishwasher's start button posts the programme its shadow reports as selected to
@@ -756,13 +757,32 @@ async fn the_start_route_starts_programmes_through_the_guard() {
     assert_eq!(frame["data"][0]["program"], serde_json::Value::from(uid));
 }
 
-/// `POST /api/devices/{slug}/program/stop` aborts whatever runs: `DELETE /ro/activeProgram`, no
-/// body, on any appliance.
+/// `POST /api/devices/{slug}/program/stop` aborts whatever runs: the appliance's own
+/// `AbortProgram` command where it declares one, `DELETE /ro/activeProgram` where it does not.
 #[tokio::test]
-async fn the_stop_route_deletes_the_active_programme() {
-    for (slug, role, fixture) in [
-        ("dishwasher", DeviceRole::Dishwasher, "dishwasher-tls.zip"),
-        ("oven", DeviceRole::Oven, "oven-tls.zip"),
+async fn the_stop_route_aborts_the_active_programme() {
+    for (slug, role, fixture, resource, action) in [
+        (
+            "dishwasher",
+            DeviceRole::Dishwasher,
+            "dishwasher-tls.zip",
+            "/ro/values",
+            "POST",
+        ),
+        (
+            "oven",
+            DeviceRole::Oven,
+            "oven-tls.zip",
+            "/ro/values",
+            "POST",
+        ),
+        (
+            "cooktop",
+            DeviceRole::Cooktop,
+            "hob-aes.zip",
+            "/ro/activeProgram",
+            "DELETE",
+        ),
     ] {
         let state = state_with(slug, role, fixture);
         let (writer, wire) = installed_writer(ED_MSG_ID);
@@ -778,11 +798,18 @@ async fn the_stop_route_deletes_the_active_programme() {
         assert_eq!(reply.status, StatusCode::OK, "{slug}: {}", reply.body);
         assert_eq!(reply.json()["outcome"], "accepted");
         let frame = only_frame(&wire);
-        assert_eq!(frame["resource"], "/ro/activeProgram", "{slug}");
-        assert_eq!(frame["action"], "DELETE", "{slug}");
-        assert!(
-            frame.get("data").is_none(),
-            "{slug}: a DELETE carries no data"
-        );
+        assert_eq!(frame["resource"], resource, "{slug}");
+        assert_eq!(frame["action"], action, "{slug}");
+        if action == "POST" {
+            assert_eq!(
+                frame["data"][0]["value"], true,
+                "{slug}: the command is written true"
+            );
+        } else {
+            assert!(
+                frame.get("data").is_none(),
+                "{slug}: a DELETE carries no data"
+            );
+        }
     }
 }

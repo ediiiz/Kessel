@@ -495,7 +495,7 @@ pub fn build_write_command(
 ) -> Result<WriteCommand, SetError> {
     // The synthetic controls back no feature, so the mapping lookup below would refuse them.
     if relative_set_topic == STOP_PROGRAM_TOPIC {
-        return Ok(stop_program_command());
+        return Ok(stop_program_command(model));
     }
     let entry = mapping
         .entries()
@@ -525,12 +525,31 @@ pub fn build_write_command(
     })
 }
 
-/// The command a programme stop becomes: `DELETE /ro/activeProgram`, no body, no uid.
+/// The key of the command an appliance declares for aborting its programme.
+const ABORT_PROGRAM_KEY: &str = "BSH.Common.Command.AbortProgram";
+
+/// The command a programme stop becomes, chosen from the appliance's own description.
 ///
-/// This aborts whatever the appliance is running, a delayed start included. The MQTT stop control
-/// ignores its payload: a button press has only one meaning.
+/// Where the appliance declares `BSH.Common.Command.AbortProgram`, stop writes it `true` on
+/// `/ro/values` like any other command. That is the appliance's own way to stop, and it aborts a
+/// delayed start too. On a real dishwasher, `DELETE /ro/activeProgram` was answered by the appliance
+/// closing the connection, while the abort command stopped the programme. An appliance that
+/// declares no such command gets `DELETE /ro/activeProgram`, no body, no uid, as
+/// go-homeconnect2mqtt sends it; whether it accepts that is its answer.
+///
+/// The MQTT stop control ignores its payload: a button press has only one meaning.
 #[must_use]
-pub fn stop_program_command() -> WriteCommand {
+pub fn stop_program_command(model: &EntityModel) -> WriteCommand {
+    if let Some(abort) = model.entity_by_key(ABORT_PROGRAM_KEY) {
+        return WriteCommand {
+            resource: VALUES_RESOURCE.to_owned(),
+            target_uid: Some(abort.uid),
+            field: None,
+            value: Value::Bool(true),
+            validate: true,
+            options: Vec::new(),
+        };
+    }
     WriteCommand {
         resource: ACTIVE_PROGRAM_RESOURCE.to_owned(),
         // No uid: the resource is the whole address, so this is its own `WriteIntent`.

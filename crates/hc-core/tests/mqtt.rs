@@ -2864,13 +2864,44 @@ async fn an_appliance_that_runs_programmes_gets_a_stop_button() {
 }
 
 #[tokio::test]
-async fn pressing_stop_builds_a_delete_of_the_active_program() {
-    // A write path: it aborts whatever the appliance is running. Built here, not transmitted.
-    //
-    // The frame is `DELETE /ro/activeProgram` with no body. Asserted down to the emitted frame,
-    // because a new resource must not reach the wire without a known frame behind it.
-    let profile = fixture_profile("oven-tls.zip");
+async fn pressing_stop_sends_the_appliances_own_abort_command() {
+    // Observed on a real dishwasher: `DELETE /ro/activeProgram` makes it close the connection,
+    // while writing its `BSH.Common.Command.AbortProgram` stops the programme. Where the appliance
+    // declares that command, stop writes it like any other command: one `{"uid":…,"value":true}`.
+    for fixture in ["dishwasher-tls.zip", "oven-tls.zip"] {
+        let profile = fixture_profile(fixture);
+        let model = profile.model();
+        let mapping = DeviceMapping::build(&device_id(), model, &Excludes::none());
+        let abort = model
+            .entity_by_key("BSH.Common.Command.AbortProgram")
+            .expect("the fixture declares AbortProgram")
+            .uid;
+
+        let command =
+            hc_core::bridge::build_write_command(model, &mapping, "_control/stop_program/set", "")
+                .expect("the stop control is routable");
+        assert_eq!(command.resource, "/ro/values", "{fixture}");
+        assert_eq!(command.target_uid, Some(abort), "{fixture}");
+        assert_eq!(command.value, Value::Bool(true), "{fixture}");
+
+        let frame = hc_core::bridge::to_outgoing(&command, 7, 9, hc_proto::Version::Int(1))
+            .expect("the abort frame builds");
+        assert_eq!(frame.action, hc_proto::Action::Post, "{fixture}");
+        assert_eq!(frame.resource, "/ro/values", "{fixture}");
+    }
+}
+
+#[tokio::test]
+async fn without_an_abort_command_stop_deletes_the_active_program() {
+    // The hob declares no AbortProgram. Stop falls back to `DELETE /ro/activeProgram` with no body,
+    // the frame go-homeconnect2mqtt sends; whether a given appliance accepts it is its answer.
+    let profile = fixture_profile("hob-aes.zip");
     let model = profile.model();
+    assert!(
+        model
+            .entity_by_key("BSH.Common.Command.AbortProgram")
+            .is_none()
+    );
     let mapping = DeviceMapping::build(&device_id(), model, &Excludes::none());
 
     let command =
@@ -2883,7 +2914,7 @@ async fn pressing_stop_builds_a_delete_of_the_active_program() {
     );
 
     let frame = hc_core::bridge::to_outgoing(&command, 7, 9, hc_proto::Version::Int(1))
-        .expect("the stop frame is evidenced and must build");
+        .expect("the stop frame builds");
     assert_eq!(frame.action, hc_proto::Action::Delete);
     assert_eq!(frame.resource, "/ro/activeProgram");
     assert_eq!(

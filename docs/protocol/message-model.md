@@ -375,6 +375,13 @@ Two resources take the same body, `[{"program":<uid>,"options":[{"uid":…,"valu
   `BSH.Common.Option.StartInRelative` (`reference/hcpy/README.md:461-477`).
 - `DELETE /ro/activeProgram`, with no `data`, clears the active programme (§1, Actions).
 
+**Stopping.** On a real dishwasher (SMD8TCX01E), `DELETE /ro/activeProgram` was answered by the
+appliance closing the connection, with no `RESPONSE`. Writing its
+`BSH.Common.Command.AbortProgram` command `true` through `POST /ro/values`
+(`[{"uid":512,"value":true}]` in that profile) was accepted, set `ActiveProgram` to 0 and cancelled
+a pending delayed start. So Kessel stops with the appliance's own `AbortProgram` where the
+description declares it, and falls back to the `DELETE` only where it does not (the hob fixture).
+
 The exception is the hob, where Go posts the start straight to `/ro/selectedProgram`
 (`reference/go-homeconnect2mqtt/internal/homeconnect/appliance.go:53`). *(inference)* The
 descriptions agree with the split: the hob and the oven fixtures declare
@@ -387,4 +394,5 @@ verdict to the appliance.
 
 - whether every appliance with a writable `<activeProgram>` needs a prior selection;
 - which options an appliance insists on in the start body;
-- whether a `<program execution="selectOnly">` refuses a start. No reference gates a start on it.
+- whether a `<program execution="selectOnly">` refuses a start. No reference gates a start on it;
+- whether any appliance accepts `DELETE /ro/activeProgram`. The one tried did not.

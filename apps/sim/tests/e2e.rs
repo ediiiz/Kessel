@@ -509,6 +509,43 @@ async fn programs_start_and_stop() {
     );
 }
 
+/// Writing the dishwasher's `AbortProgram` command stops its programme, as it did on the real
+/// appliance, so a stop through the command is visible in the simulator too.
+#[tokio::test]
+async fn the_abort_command_stops_the_running_programme() {
+    let (addr, appliance, profile) = start().await;
+    let (mut ws, s_id) = raw_client(addr, &profile).await;
+    let program = *profile.model().programs().keys().nth(1).unwrap();
+    let active = uid_of_kind(&profile, EntityKind::ActiveProgram);
+    let abort = profile
+        .model()
+        .entity_by_key("BSH.Common.Command.AbortProgram")
+        .expect("the dishwasher declares AbortProgram")
+        .uid;
+
+    let mut seen = Vec::new();
+    let body = json!([{"program": program, "options": []}]);
+    request(&mut ws, (s_id, 500), "POST", "/ro/activeProgram", body).await;
+    let response = response_to(&mut ws, 500, &mut seen).await;
+    assert!(response.get("code").is_none(), "start accepted: {response}");
+    let notify = notify_for(&mut ws, "/ro/values", active, &mut seen).await;
+    assert_eq!(
+        item_value(&notify, active),
+        json!(program),
+        "start notified"
+    );
+    // Only what follows the abort counts: the start's own NOTIFY also carries `active`.
+    seen.clear();
+
+    let body = json!([{"uid": abort, "value": true}]);
+    request(&mut ws, (s_id, 501), "POST", "/ro/values", body).await;
+    let response = response_to(&mut ws, 501, &mut seen).await;
+    assert!(response.get("code").is_none(), "abort accepted: {response}");
+    let notify = notify_for(&mut ws, "/ro/values", active, &mut seen).await;
+    assert_eq!(item_value(&notify, active), json!(0), "stop notified");
+    assert_eq!(appliance.lock().value(active), Some(&json!(0)));
+}
+
 #[tokio::test]
 async fn unknown_paths_are_refused() {
     let (addr, _appliance, profile) = start().await;

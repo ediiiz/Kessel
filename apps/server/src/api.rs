@@ -526,18 +526,22 @@ async fn start_program(
 
 /// `POST /api/devices/{slug}/program/stop` — abort whatever the appliance runs, **through the guard**.
 ///
-/// `DELETE /ro/activeProgram`, which also cancels a delayed start. No body.
+/// The appliance's own `AbortProgram` command where it declares one, else
+/// `DELETE /ro/activeProgram` (`hc_core::bridge::stop_program_command`). Either also cancels a
+/// delayed start. No body.
 async fn stop_program(
     State(state): State<AppState>,
     Path(slug): Path<String>,
 ) -> Result<(StatusCode, Json<WriteOutcome>), ApiFailure> {
-    if state.devices().entry(&slug).is_none() {
-        return Err(ApiFailure::not_found("no such device"));
-    }
-    let command = hc_core::bridge::stop_program_command();
+    let entry = state
+        .devices()
+        .entry(&slug)
+        .ok_or_else(|| ApiFailure::not_found("no such device"))?;
+    let command = hc_core::bridge::stop_program_command(&entry.model);
     let verdict = guarded_write(&state, &slug, &command).await;
     tracing::info!(
         device = %slug,
+        resource = %command.resource,
         allowed = verdict.is_ok(),
         "programme stop at the guard"
     );

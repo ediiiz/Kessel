@@ -11,6 +11,8 @@ use serde_json::{Map, Value, json};
 
 /// Chance that a successful Setting/Option write is followed by a `/ro/descriptionChange`.
 const DESCRIPTION_CHANGE_PROBABILITY: f64 = 0.5;
+/// The command an appliance declares for aborting its programme.
+const ABORT_PROGRAM_KEY: &str = "BSH.Common.Command.AbortProgram";
 /// Where a remaining-time countdown restarts after reaching zero, in seconds.
 const REMAINING_TIME_START: i64 = 5400;
 /// How far the countdown moves per tick, in seconds.
@@ -155,10 +157,22 @@ impl Appliance {
         if items.is_empty() {
             return refuse("no items in the write");
         }
-        let changes = items
+        let mut changes = items
             .iter()
             .map(|item| self.check_item(item))
             .collect::<Result<Vec<_>, _>>()?;
+        // The appliance's abort command stops its programme, as it did on a real dishwasher.
+        let abort = self
+            .model
+            .entity_by_key(ABORT_PROGRAM_KEY)
+            .map(|entity| entity.uid);
+        if changes
+            .iter()
+            .any(|(uid, value)| Some(*uid) == abort && *value == json!(true))
+            && let Some(active) = self.uid_of_kind(EntityKind::ActiveProgram)
+        {
+            changes.push((active, json!(0)));
+        }
         self.apply(&changes);
         Ok(changes)
     }
