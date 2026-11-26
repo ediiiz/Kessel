@@ -43,11 +43,12 @@ created under *Configuration* and *Diagnostic*, disabled; enable the ones you wa
 Entity ids are derived from the appliance's feature names and stay the same across restarts and
 updates, so they are safe to use in automations.
 
-Programmes: *Start programme* (in Home Assistant and on the device page) starts the selected
-programme, sending whatever this appliance's description says starts it. On a dishwasher, choosing a
-programme only selects it, as on the appliance's own panel, so set a delayed start first if you
-want one and then press Start. On a cooktop or an oven, choosing a programme already starts it.
-*Stop programme* aborts whatever is running.
+Programmes: the device page's programme card has a programme dropdown, *Start* for the selected
+programme and *Stop* for the running one; Home Assistant gets the *Selected programme* select and
+the *Start programme* and *Stop programme* buttons. Kessel sends whatever this appliance's
+description says starts it. On a dishwasher, choosing a programme only selects it, as on the
+appliance's own panel, so set a delayed start first if you want one and then press Start; Stop also
+cancels a delayed start. On a cooktop or an oven, choosing a programme already starts it.
 
 If an appliance refuses a change — some options can only be changed while a programme is selected,
 for example — the entity shows the appliance's actual value again and the reason appears in the

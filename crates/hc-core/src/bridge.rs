@@ -525,11 +525,12 @@ pub fn build_write_command(
     })
 }
 
-/// The command the synthetic stop control becomes: `DELETE /ro/activeProgram`, no body, no uid.
+/// The command a programme stop becomes: `DELETE /ro/activeProgram`, no body, no uid.
 ///
-/// This aborts whatever the appliance is running. The payload is ignored: a button press has only
-/// one meaning.
-fn stop_program_command() -> WriteCommand {
+/// This aborts whatever the appliance is running, a delayed start included. The MQTT stop control
+/// ignores its payload: a button press has only one meaning.
+#[must_use]
+pub fn stop_program_command() -> WriteCommand {
     WriteCommand {
         resource: ACTIVE_PROGRAM_RESOURCE.to_owned(),
         // No uid: the resource is the whole address, so this is its own `WriteIntent`.

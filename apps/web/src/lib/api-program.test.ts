@@ -35,3 +35,26 @@ describe('start_program_posts_to_the_start_route', () => {
     expect(call?.init?.body).toBe('{"program":"Dishcare.Dishwasher.Program.Eco50"}');
   });
 });
+
+describe('stop_program_posts_to_the_stop_route', () => {
+  it('posts an empty body to the device programme-stop route', async () => {
+    const calls: { url: string; init: RequestInit | undefined }[] = [];
+    const fetchImpl = (url: string, init?: RequestInit): Promise<Response> => {
+      calls.push({ url, init });
+      return Promise.resolve(
+        new Response(JSON.stringify({ outcome: 'accepted' }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+      );
+    };
+    const { createApiClient } = await import('./api');
+    const api = createApiClient({ fetchImpl, token: () => 'operator-token' });
+
+    expect(await api.stopProgram('dishwasher')).toStrictEqual({ outcome: 'accepted' });
+    expect(calls.map((call) => call.url)).toStrictEqual([
+      `${INGRESS_BASE}/api/devices/dishwasher/program/stop`,
+    ]);
+    expect(calls[0]?.init?.method).toBe('POST');
+  });
+});

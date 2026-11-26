@@ -755,3 +755,34 @@ async fn the_start_route_starts_programmes_through_the_guard() {
     assert_eq!(frame["resource"], "/ro/selectedProgram");
     assert_eq!(frame["data"][0]["program"], serde_json::Value::from(uid));
 }
+
+/// `POST /api/devices/{slug}/program/stop` aborts whatever runs: `DELETE /ro/activeProgram`, no
+/// body, on any appliance.
+#[tokio::test]
+async fn the_stop_route_deletes_the_active_programme() {
+    for (slug, role, fixture) in [
+        ("dishwasher", DeviceRole::Dishwasher, "dishwasher-tls.zip"),
+        ("oven", DeviceRole::Oven, "oven-tls.zip"),
+    ] {
+        let state = state_with(slug, role, fixture);
+        let (writer, wire) = installed_writer(ED_MSG_ID);
+        state.writers().install(slug, writer);
+        let request = Request::builder()
+            .method("POST")
+            .uri(format!("/api/devices/{slug}/program/stop"))
+            .header(TOKEN_HEADER, TEST_TOKEN)
+            .body(Body::empty())
+            .expect("a well-formed request");
+
+        let reply = common::send(server::api::app(state.clone()), request).await;
+        assert_eq!(reply.status, StatusCode::OK, "{slug}: {}", reply.body);
+        assert_eq!(reply.json()["outcome"], "accepted");
+        let frame = only_frame(&wire);
+        assert_eq!(frame["resource"], "/ro/activeProgram", "{slug}");
+        assert_eq!(frame["action"], "DELETE", "{slug}");
+        assert!(
+            frame.get("data").is_none(),
+            "{slug}: a DELETE carries no data"
+        );
+    }
+}

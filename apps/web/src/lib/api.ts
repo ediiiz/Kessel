@@ -108,6 +108,8 @@ export interface ApiClient {
    * the frame the appliance's own description calls for; the appliance's answer is the outcome.
    */
   startProgram(slug: string, request: StartProgramRequest): Promise<WriteOutcome>;
+  /** Stops whatever the appliance runs, a delayed start included. */
+  stopProgram(slug: string): Promise<WriteOutcome>;
   /** The stored configuration. Never carries the broker password — see `ConfigView`. */
   config(): Promise<ConfigView>;
   /**
@@ -157,7 +159,7 @@ function readRoutes(
 function deviceRoutes(
   doFetch: FetchLike,
   authHeaders: AuthHeaders,
-): Pick<ApiClient, 'setManualHost' | 'write' | 'startProgram'> {
+): Pick<ApiClient, 'setManualHost' | 'write' | 'startProgram' | 'stopProgram'> {
   return {
     setManualHost: async (slug, host) => {
       const body: ManualHostRequest = { host };
@@ -180,6 +182,14 @@ function deviceRoutes(
       const response = await doFetch(
         apiUrl(`/devices/${encodeURIComponent(slug)}/program/start`),
         jsonPost(request, authHeaders('application/json')),
+      );
+      return readWriteOutcome(response);
+    },
+
+    stopProgram: async (slug) => {
+      const response = await doFetch(
+        apiUrl(`/devices/${encodeURIComponent(slug)}/program/stop`),
+        jsonPost({}, authHeaders('application/json')),
       );
       return readWriteOutcome(response);
     },

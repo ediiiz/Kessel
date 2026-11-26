@@ -37,6 +37,7 @@ pub fn app(state: AppState) -> Router {
         .route("/api/devices/{slug}/programs", get(programs))
         .route("/api/devices/{slug}/write", post(write_feature))
         .route("/api/devices/{slug}/program/start", post(start_program))
+        .route("/api/devices/{slug}/program/stop", post(stop_program))
         .route("/api/events", get(crate::sse::events))
         .route("/api/config", get(config).put(save_config))
         .route("/api/restart", post(restart))
@@ -519,6 +520,26 @@ async fn start_program(
         resource = %command.resource,
         allowed = verdict.is_ok(),
         "programme start at the guard"
+    );
+    Ok(outcome(verdict))
+}
+
+/// `POST /api/devices/{slug}/program/stop` — abort whatever the appliance runs, **through the guard**.
+///
+/// `DELETE /ro/activeProgram`, which also cancels a delayed start. No body.
+async fn stop_program(
+    State(state): State<AppState>,
+    Path(slug): Path<String>,
+) -> Result<(StatusCode, Json<WriteOutcome>), ApiFailure> {
+    if state.devices().entry(&slug).is_none() {
+        return Err(ApiFailure::not_found("no such device"));
+    }
+    let command = hc_core::bridge::stop_program_command();
+    let verdict = guarded_write(&state, &slug, &command).await;
+    tracing::info!(
+        device = %slug,
+        allowed = verdict.is_ok(),
+        "programme stop at the guard"
     );
     Ok(outcome(verdict))
 }
