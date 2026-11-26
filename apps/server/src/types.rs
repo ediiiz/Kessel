@@ -204,7 +204,7 @@ pub struct EntityDescriptor {
 /// [`EntityDescriptor::value`] on `Root.SelectedProgram` be shown as a name.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 pub struct ProgramDescriptor {
-    /// The wire `uid`, which a `/ro/selectedProgram` write addresses.
+    /// The wire `uid`, which a programme selection or start addresses.
     pub uid: u32,
     /// The dotted programme key, when the `FeatureMapping` names this uid
     /// (`Dishcare.Dishwasher.Program.Eco50`).
@@ -218,7 +218,7 @@ pub struct ProgramDescriptor {
     /// The appliance's declared `execution` word, verbatim (`"none"`, `"selectOnly"`,
     /// `"selectAndStart"`).
     ///
-    /// Sent unchanged: a start control must gate on what the appliance says it accepts.
+    /// Sent unchanged, for the operator to read; Kessel does not gate a start on it.
     pub execution: Option<String>,
 }
 
@@ -623,6 +623,16 @@ pub struct WriteRequest {
     pub value: String,
 }
 
+/// What a programme start asks for.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
+pub struct StartProgramRequest {
+    /// The dotted programme key to start (`Dishcare.Dishwasher.Program.Eco50`). Absent starts the
+    /// programme the appliance reports as selected.
+    #[serde(default)]
+    #[ts(optional)]
+    pub program: Option<String>,
+}
+
 /// What the write choke point decided (`hc_core::write::GuardedWriter`).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(tag = "outcome", rename_all = "snake_case")]
@@ -697,6 +707,7 @@ pub fn export_api_types(dir: &Path) -> Result<Vec<String>, ExportError> {
         RestartOutcome,
         SessionView,
         SseEventKind,
+        StartProgramRequest,
         TraceFrame,
         TraceLevel,
         TraceSource,

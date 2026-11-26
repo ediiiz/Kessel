@@ -61,7 +61,7 @@ Each appliance becomes one device. Kessel publishes:
 | `kessel/<device>/connection_state` | connection state of the appliance |
 | `kessel/<device>/<Feature/Path>/state` | current value, retained |
 | `kessel/<device>/<Feature/Path>/set` | write a value (writable features only) |
-| `kessel/<device>/_control/start_program/set` | start the selected programme (appliances that start separately from selecting, such as dishwashers) |
+| `kessel/<device>/_control/start_program/set` | start a programme: the one named in the payload (`Dishcare.Dishwasher.Program.Eco50`), or the selected one for an empty payload or `true` |
 | `kessel/<device>/_control/stop_program/set` | abort the running programme |
 
 The everyday features (power, door, operation state, programme, remaining time, …) are enabled and

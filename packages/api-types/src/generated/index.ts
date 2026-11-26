@@ -22,6 +22,7 @@ export type * from './ProgramDescriptor.js';
 export type * from './RestartOutcome.js';
 export type * from './SessionView.js';
 export type * from './SseEventKind.js';
+export type * from './StartProgramRequest.js';
 export type * from './TraceFrame.js';
 export type * from './TraceLevel.js';
 export type * from './TraceSource.js';

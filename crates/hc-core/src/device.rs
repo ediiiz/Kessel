@@ -1,26 +1,26 @@
-//! Device identity as the supervisor sees it: the appliance role, which selects the
-//! program-start path, and the connection state published on the `connection_state` topic.
+//! Device identity as the supervisor sees it: the appliance role, and the connection state published on the `connection_state` topic.
 
 /// The appliance class.
 ///
-/// It does not gate writes. A closed enum rather than a string because slugs, icons and the
-/// program-start paths match on it exhaustively.
+/// It does not gate writes, and it does not choose the program-start path: the appliance's own
+/// description does (`crate::write::start_command`). A closed enum rather than a string because
+/// slugs and icons match on it exhaustively.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum DeviceRole {
-    /// The cooktop. Programs start with a direct `POST /ro/selectedProgram`.
+    /// The cooktop.
     Cooktop,
-    /// The oven. Programs start with a direct `POST /ro/selectedProgram`.
+    /// The oven.
     Oven,
-    /// The dishwasher. Programs start via `StartInRelative`.
+    /// The dishwasher.
     Dishwasher,
     /// The fridge / freezer. It has no programs.
     Fridge,
-    /// A washer. Programs start via `FinishInRelative` (uid 551).
+    /// A washer.
     Washer,
     /// A dryer. As [`DeviceRole::Washer`].
     Dryer,
-    /// A role this supervisor does not recognise. It has no program-start path.
+    /// A role this supervisor does not recognise.
     Other(String),
 }
 

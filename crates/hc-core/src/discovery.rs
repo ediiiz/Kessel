@@ -378,6 +378,9 @@ const BOOLEAN_ON: &str = "true";
 /// The `false` half of [`BOOLEAN_ON`].
 const BOOLEAN_OFF: &str = "false";
 
+/// What a synthetic control button sends when pressed: [`BOOLEAN_ON`].
+pub(crate) const BUTTON_PRESS_PAYLOAD: &str = BOOLEAN_ON;
+
 /// The `<event>` enumeration's member names: `Off` / `Present` / `Confirmed`.
 ///
 /// An event's state topic carries the label. A binary sensor has only two states, so a
@@ -1037,24 +1040,19 @@ fn runs_programmes(mapping: &DeviceMapping) -> bool {
     })
 }
 
-/// Whether this appliance starts a programme with `POST /ro/activeProgram`: it declares a writable
-/// `<activeProgram>` and at least one programme to select.
+/// Whether this appliance declares a programme to start: a programme pointer whose options (the
+/// declared programmes) are not empty.
 ///
-/// The cooktop and the oven declare `<activeProgram access="read">`; their programme `select`
-/// already starts, so they get no second way to switch on a heat source. On the dishwasher the
-/// `select` only selects, and without this control nothing would start it. "Writable" is the
-/// mapping's own test, so `access="none"` counts, as it does for every other control. [`crate::bridge::handle_set`]
-/// applies the same predicate, so a start published by hand cannot reach a hob or an oven either.
-pub(crate) fn starts_from_active_program(mapping: &DeviceMapping) -> bool {
-    let writable_active = mapping.entries().iter().any(|entry| {
-        matches!(entry.kind, hc_profile::EntityKind::ActiveProgram) && entry.command_topic.is_some()
-    });
-    let selectable = mapping.entries().iter().any(|entry| {
-        matches!(entry.kind, hc_profile::EntityKind::SelectedProgram)
-            && entry.command_topic.is_some()
-            && !entry.options.is_empty()
-    });
-    writable_active && selectable
+/// Every such appliance gets the start control, the hob and the oven included; the frame it sends
+/// is the one the appliance's description calls for (`crate::write::start_command`). The fridge
+/// has the pointers but no programmes, so there is nothing to start.
+fn declares_programmes(mapping: &DeviceMapping) -> bool {
+    mapping.entries().iter().any(|entry| {
+        matches!(
+            entry.kind,
+            hc_profile::EntityKind::SelectedProgram | hc_profile::EntityKind::ActiveProgram
+        ) && !entry.options.is_empty()
+    })
 }
 
 /// One synthetic programme control: its topic, config id, name and icon.
@@ -1082,10 +1080,10 @@ const START: ProgrammeControl = ProgrammeControl {
 /// The synthetic controls this appliance gets, in announcement order.
 ///
 /// Stop has no feature to write to (`DELETE /ro/activeProgram`), and start reads the selection
-/// rather than writing a feature, so neither is a mapping entry.
+/// rather than writing one feature, so neither is a mapping entry.
 fn programme_controls(mapping: &DeviceMapping) -> Vec<&'static ProgrammeControl> {
     let mut controls = Vec::new();
-    if starts_from_active_program(mapping) {
+    if declares_programmes(mapping) {
         controls.push(&START);
     }
     if runs_programmes(mapping) {
@@ -1140,10 +1138,10 @@ fn control_config(base: &str, device: &DeviceId, control: &ProgrammeControl) -> 
         "command_topic".to_owned(),
         Value::String(format!("{base}/{slug}/{}", control.topic)),
     );
-    // Both controls ignore the payload: a button press has only one meaning.
+    // Stop ignores the payload; start reads it as "the selected programme".
     payload.insert(
         "payload_press".to_owned(),
-        Value::String(BOOLEAN_ON.to_owned()),
+        Value::String(BUTTON_PRESS_PAYLOAD.to_owned()),
     );
     // No `entity_category` or `enabled_by_default`: starting and stopping must always be visible.
     DiscoveryConfig {

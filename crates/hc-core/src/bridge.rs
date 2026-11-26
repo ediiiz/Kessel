@@ -29,12 +29,12 @@ const VALUES_RESOURCE: &str = "/ro/values";
 
 /// The program-select resource. A command aimed here becomes a program-start frame
 /// (`hc_proto::Body::Program`), never a `/ro/values` write.
-const SELECTED_PROGRAM_RESOURCE: &str = "/ro/selectedProgram";
+pub(crate) const SELECTED_PROGRAM_RESOURCE: &str = "/ro/selectedProgram";
 
 /// The active-program resource. A command aimed here with a programme uid is a `POST` that starts
 /// it; one with no uid is a `DELETE`, which aborts the running programme and is the only write that
 /// carries no body.
-const ACTIVE_PROGRAM_RESOURCE: &str = "/ro/activeProgram";
+pub(crate) const ACTIVE_PROGRAM_RESOURCE: &str = "/ro/activeProgram";
 
 /// The device-relative `…/set` topic of the synthetic stop control (`crate::discovery`).
 ///
@@ -45,8 +45,9 @@ pub const STOP_PROGRAM_TOPIC: &str = "_control/stop_program/set";
 
 /// The device-relative `…/set` topic of the synthetic start control (`crate::discovery`).
 ///
-/// Like [`STOP_PROGRAM_TOPIC`] it backs no feature. Only [`handle_set`] routes it, because a start
-/// needs the appliance's current selection ([`SetContext::with_values`]).
+/// Like [`STOP_PROGRAM_TOPIC`] it backs no feature. A payload naming a programme starts that
+/// programme; an empty payload or the button's press payload starts the selected one, which needs
+/// the appliance's current values, so only [`handle_set`] routes it ([`SetContext::with_values`]).
 pub const START_PROGRAM_TOPIC: &str = "_control/start_program/set";
 
 /// Home Assistant's own status topic, where it publishes its birth (`online`) and will (`offline`).
@@ -97,8 +98,8 @@ pub enum SetError {
     /// The payload was not a value this feature accepts.
     #[error("invalid set payload: {0}")]
     InvalidPayload(String),
-    /// A start was asked for, but the appliance reports no selected programme to start.
-    #[error("no programme is selected on the appliance; select one before starting it")]
+    /// A start of "the selected programme" was asked for, but the appliance reports none.
+    #[error("no programme is selected on the appliance; select one or name the programme to start")]
     NoProgramSelected,
     /// The write failed (see [`WriteError`]).
     #[error(transparent)]
@@ -504,9 +505,14 @@ pub fn build_write_command(
     let entity = model
         .entity(entry.uid)
         .ok_or(SetError::UnknownEntity(entry.uid))?;
-    // A programme pointer takes a different frame entirely — see `select_program_command`.
-    if matches!(entity.kind, hc_profile::EntityKind::SelectedProgram) {
-        return select_program_command(model, payload);
+    // A programme pointer takes a different frame entirely: a selection, or a start.
+    match entity.kind {
+        hc_profile::EntityKind::SelectedProgram => return select_program_command(model, payload),
+        hc_profile::EntityKind::ActiveProgram => {
+            let program = declared_program(model, payload)?;
+            return Ok(crate::write::start_command(model, program.uid, Vec::new()));
+        }
+        _ => {}
     }
     let value = value_for_write(model, entity, payload)?;
     Ok(WriteCommand {
@@ -537,23 +543,14 @@ fn stop_program_command() -> WriteCommand {
 
 /// The command a programme selection becomes: a programme frame on `/ro/selectedProgram`.
 ///
-/// On a cooktop or oven this starts the programme, which is a physical act; on an appliance with a
-/// writable `<activeProgram>` (the dishwasher) it only selects, and the start control starts it. The
+/// On a cooktop or oven this starts the programme; on an appliance with a writable
+/// `<activeProgram>` (the dishwasher) it only selects, and [`build_start_command`] starts it. The
 /// frame addresses the programme by uid, not the pointer feature, since there is no known
 /// `/ro/values` form for a selection. The payload must name a programme this appliance declares
 /// (the `select` options come from the same list), so a typo is an error rather than a start.
 /// `options` is left empty: a caller that knows a programme's options builds the command directly.
 fn select_program_command(model: &EntityModel, payload: &str) -> Result<WriteCommand, SetError> {
-    let wanted = payload.trim();
-    let program = model
-        .programs()
-        .values()
-        .find(|program| program.key.as_deref() == Some(wanted))
-        .ok_or_else(|| {
-            SetError::InvalidPayload(format!(
-                "'{wanted}' is not a programme this appliance declares"
-            ))
-        })?;
+    let program = declared_program(model, payload)?;
     Ok(WriteCommand {
         resource: SELECTED_PROGRAM_RESOURCE.to_owned(),
         // The programme's uid, emitted as the frame's `program` field.
@@ -566,37 +563,58 @@ fn select_program_command(model: &EntityModel, payload: &str) -> Result<WriteCom
     })
 }
 
-/// The command the synthetic start control becomes: `POST /ro/activeProgram` with the programme
-/// the appliance reports as selected.
+/// The programme this appliance declares under the dotted key `payload`, so a typo is an error
+/// rather than a start.
+fn declared_program<'m>(
+    model: &'m EntityModel,
+    payload: &str,
+) -> Result<&'m hc_profile::Program, SetError> {
+    let wanted = payload.trim();
+    model.program_by_key(wanted).ok_or_else(|| {
+        SetError::InvalidPayload(format!(
+            "'{wanted}' is not a programme this appliance declares"
+        ))
+    })
+}
+
+/// The command a programme start becomes, by [`crate::write::start_command`]: the frame this
+/// appliance's description calls for, carrying a delayed start when one is set.
 ///
-/// This starts a programme on the appliance. Discovery offers the control only where
-/// `<activeProgram>` is writable, which excludes the cooktop and the oven: their selection is the
-/// start. A delayed start the operator set travels as the `StartInRelative` option, the form hcpy
-/// documents; every other option stays as the appliance holds it for the selection.
+/// `program` names the programme by its dotted key; `None` starts the programme `values` reports as
+/// selected. A delayed start the operator set travels as the `StartInRelative` option, the form
+/// hcpy documents, when the programme declares that option; every other option stays as the
+/// appliance holds it.
+///
+/// This starts a programme on the appliance, whatever kind it is; the appliance answers for
+/// whether it does.
 ///
 /// # Errors
 ///
-/// [`SetError::NoProgramSelected`] when there are no values, or the selection is `0` (idle) or a
-/// uid this appliance does not declare.
-fn start_program_command(
+/// - [`SetError::InvalidPayload`] when `program` names no declared programme;
+/// - [`SetError::NoProgramSelected`] when `program` is `None` and there are no values, or the
+///   selection is `0` (idle) or a uid this appliance does not declare.
+pub fn build_start_command(
     model: &EntityModel,
     values: Option<&crate::shadow::Shadow>,
+    program: Option<&str>,
 ) -> Result<WriteCommand, SetError> {
-    let values = values.ok_or(SetError::NoProgramSelected)?;
     let current = |uid: u16| {
-        values
+        values?
             .get(u64::from(uid))
             .map(crate::shadow::ShadowEntry::value)
     };
-    let program = model
-        .entities()
-        .values()
-        .find(|entity| matches!(entity.kind, hc_profile::EntityKind::SelectedProgram))
-        .and_then(|selected| current(selected.uid))
-        .and_then(Value::as_u64)
-        .and_then(|uid| u16::try_from(uid).ok())
-        .and_then(|uid| model.program(uid))
-        .ok_or(SetError::NoProgramSelected)?;
+    let program = match program {
+        Some(key) => declared_program(model, key)?,
+        None => model
+            .entities()
+            .values()
+            .find(|entity| matches!(entity.kind, hc_profile::EntityKind::SelectedProgram))
+            .and_then(|selected| current(selected.uid))
+            .and_then(Value::as_u64)
+            .and_then(|uid| u16::try_from(uid).ok())
+            .and_then(|uid| model.program(uid))
+            .ok_or(SetError::NoProgramSelected)?,
+    };
     let delay = model
         .entity_by_key(START_IN_RELATIVE_KEY)
         .filter(|start_in| {
@@ -611,16 +629,18 @@ fn start_program_command(
                 .filter(|seconds| *seconds > 0)?;
             Some((start_in.uid, Value::from(seconds)))
         });
-    Ok(WriteCommand {
-        resource: ACTIVE_PROGRAM_RESOURCE.to_owned(),
-        // The programme's uid, emitted as the frame's `program` field.
-        target_uid: Some(program.uid),
-        field: None,
-        // For the inspector only; not a wire field on this path.
-        value: Value::from(program.uid),
-        validate: true,
-        options: delay.into_iter().collect(),
-    })
+    Ok(crate::write::start_command(
+        model,
+        program.uid,
+        delay.into_iter().collect(),
+    ))
+}
+
+/// The programme a start control payload names, or `None` for "the selected one": an empty
+/// payload, or the press payload Home Assistant's button sends.
+fn named_programme(payload: &str) -> Option<&str> {
+    let payload = payload.trim();
+    (!payload.is_empty() && payload != crate::discovery::BUTTON_PRESS_PAYLOAD).then_some(payload)
 }
 
 /// The option a delayed start is written to.
@@ -645,11 +665,7 @@ pub async fn handle_set<T: WriteTransport>(
     // the appliance's own member first. A payload that is already a declared member is never
     // reinterpreted (see `PresentedEntity::raw_member`).
     let command = if relative_set_topic == START_PROGRAM_TOPIC {
-        // The same gate discovery uses: no start where the selection already is the start.
-        if !crate::discovery::starts_from_active_program(device.mapping) {
-            return Err(SetError::UnknownTopic(relative_set_topic.to_owned()));
-        }
-        start_program_command(device.model, device.values)?
+        build_start_command(device.model, device.values, named_programme(payload))?
     } else {
         let resolved =
             resolve_member_payload(device.mapping, relative_set_topic, payload, device.names);

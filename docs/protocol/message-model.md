@@ -379,8 +379,9 @@ The exception is the hob, where Go posts the start straight to `/ro/selectedProg
 (`reference/go-homeconnect2mqtt/internal/homeconnect/appliance.go:53`). *(inference)* The
 descriptions agree with the split: the hob and the oven fixtures declare
 `<activeProgram access="read">` and the dishwasher fixture declares it `readWrite`, so Kessel starts
-with `/ro/activeProgram` exactly where `<activeProgram>` is writable and treats a selection as the
-start everywhere else.
+with `/ro/activeProgram` exactly where `<activeProgram>` is writable and with the selection
+everywhere else. It offers a start on every appliance that declares programmes and leaves the
+verdict to the appliance.
 
 **Unknown:**
 

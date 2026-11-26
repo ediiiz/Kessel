@@ -2917,16 +2917,39 @@ fn dishwasher() -> (Profile, DeviceMapping, u16) {
     (profile, mapping, program)
 }
 
+/// A dishwasher context whose shadow reports `program` as selected.
+fn selected(model: &EntityModel, program: u16) -> hc_core::shadow::Shadow {
+    let mut values = hc_core::shadow::Shadow::new();
+    values.set_optimistic(
+        u64::from(uid_of_kind(model, hc_profile::EntityKind::SelectedProgram)),
+        Value::from(program),
+    );
+    values
+}
+
+/// Sends one start-control press through the guard and returns the verdict and what was recorded.
+async fn press_start(
+    context: &hc_core::bridge::SetContext<'_>,
+    payload: &str,
+) -> (
+    Result<(), hc_core::bridge::SetError>,
+    Option<WriteCommand>,
+    usize,
+) {
+    let recorder = RecordingTransport::new();
+    let mut writer = GuardedWriter::new(recorder.clone());
+    let verdict = handle_set(&mut writer, context, "_control/start_program/set", payload).await;
+    (verdict, recorder.last(), recorder.count())
+}
+
 #[tokio::test]
-async fn a_start_button_belongs_to_appliances_whose_active_program_is_writable() {
-    // The hob and the oven declare `<activeProgram access="read">`: their programme `select` is
-    // the start, so a button would be a second way to switch on a heat source. The dishwasher
-    // declares it `readWrite`, and its `select` only selects. The fridge has a writable pointer
-    // but no programmes, so there is nothing to start.
+async fn every_appliance_with_programmes_gets_a_start_button() {
+    // Kessel offers the control wherever the appliance declares programmes; the frame it sends is
+    // the one the appliance's description calls for. The fridge has nothing to start.
     for (fixture, expected) in [
         ("dishwasher-tls.zip", true),
-        ("hob-aes.zip", false),
-        ("oven-tls.zip", false),
+        ("hob-aes.zip", true),
+        ("oven-tls.zip", true),
         ("fridge-tls.zip", false),
     ] {
         let profile = fixture_profile(fixture);
@@ -2945,11 +2968,7 @@ async fn a_start_button_belongs_to_appliances_whose_active_program_is_writable()
             .discovery_publishes()
             .find(|published| published.topic.ends_with("/start_program/config"));
         let topic = format!("{BASE}/{}/_control/start_program/set", device_id().as_str());
-        assert_eq!(
-            start.is_some(),
-            expected,
-            "{fixture}: a start button exactly where `<activeProgram>` is writable"
-        );
+        assert_eq!(start.is_some(), expected, "{fixture}: start button");
         assert_eq!(
             broker.subscriptions.iter().any(|filter| filter == &topic),
             expected,
@@ -2976,24 +2995,12 @@ async fn pressing_start_posts_the_selected_programme_to_active_program() {
     // start is `POST /ro/activeProgram` with the programme. Built and recorded, never sent.
     let (profile, mapping, program) = dishwasher();
     let model = profile.model();
-    let mut values = hc_core::shadow::Shadow::new();
-    values.set_optimistic(
-        u64::from(uid_of_kind(model, hc_profile::EntityKind::SelectedProgram)),
-        Value::from(program),
-    );
+    let values = selected(model, program);
+    let context = hc_core::bridge::SetContext::new(model, &mapping).with_values(&values);
 
-    let recorder = RecordingTransport::new();
-    let mut writer = GuardedWriter::new(recorder.clone());
-    handle_set(
-        &mut writer,
-        &hc_core::bridge::SetContext::new(model, &mapping).with_values(&values),
-        "_control/start_program/set",
-        "PRESS",
-    )
-    .await
-    .expect("the start control is routable once a programme is selected");
-
-    let command = recorder.last().expect("the start reached the transport");
+    let (verdict, command, _) = press_start(&context, "true").await;
+    verdict.expect("the button's press payload starts the selected programme");
+    let command = command.expect("the start reached the transport");
     assert_eq!(command.resource, "/ro/activeProgram");
     assert_eq!(command.target_uid, Some(program));
     assert!(
@@ -3024,38 +3031,49 @@ async fn a_delayed_start_rides_along_as_the_start_in_relative_option() {
         .entity_by_key("BSH.Common.Option.StartInRelative")
         .expect("the dishwasher declares StartInRelative")
         .uid;
-    let mut values = hc_core::shadow::Shadow::new();
-    values.set_optimistic(
-        u64::from(uid_of_kind(model, hc_profile::EntityKind::SelectedProgram)),
-        Value::from(program),
-    );
+    let mut values = selected(model, program);
     values.set_optimistic(u64::from(start_in), Value::from(600));
+    let context = hc_core::bridge::SetContext::new(model, &mapping).with_values(&values);
 
-    let recorder = RecordingTransport::new();
-    let mut writer = GuardedWriter::new(recorder.clone());
-    handle_set(
-        &mut writer,
-        &hc_core::bridge::SetContext::new(model, &mapping).with_values(&values),
-        "_control/start_program/set",
-        "PRESS",
-    )
-    .await
-    .expect("the start control is routable");
-
-    let command = recorder.last().expect("the start reached the transport");
+    let (verdict, command, _) = press_start(&context, "").await;
+    verdict.expect("an empty payload starts the selected programme");
+    let command = command.expect("the start reached the transport");
     assert_eq!(command.resource, "/ro/activeProgram");
     assert_eq!(command.options, vec![(start_in, Value::from(600))]);
 }
 
 #[tokio::test]
+async fn a_named_programme_starts_without_a_selection() {
+    // The payload may name the programme by its dotted key, as `select` options do.
+    let (profile, mapping, program) = dishwasher();
+    let model = profile.model();
+    let key = model
+        .program(program)
+        .and_then(|program| program.key.clone())
+        .expect("the programme is named");
+    let context = hc_core::bridge::SetContext::new(model, &mapping);
+
+    let (verdict, command, _) = press_start(&context, &key).await;
+    verdict.expect("a named programme needs no selection");
+    let command = command.expect("the start reached the transport");
+    assert_eq!(command.resource, "/ro/activeProgram");
+    assert_eq!(command.target_uid, Some(program));
+
+    let (verdict, _, sent) = press_start(&context, "Dishcare.Dishwasher.Program.Typo").await;
+    assert!(
+        matches!(verdict, Err(hc_core::bridge::SetError::InvalidPayload(_))),
+        "a name the appliance does not declare is an error, not a start: {verdict:?}"
+    );
+    assert_eq!(sent, 0, "nothing reaches the transport");
+}
+
+#[tokio::test]
 async fn start_is_refused_when_no_programme_is_selected() {
-    // Nothing selected, `0` (idle) or no values at all: there is no programme to start, and
-    // guessing one would start something the operator did not choose.
+    // Nothing selected, `0` (idle) or no values at all, and no programme named: there is nothing
+    // to start.
     let (profile, mapping, _) = dishwasher();
     let model = profile.model();
-    let selected = u64::from(uid_of_kind(model, hc_profile::EntityKind::SelectedProgram));
-    let mut idle = hc_core::shadow::Shadow::new();
-    idle.set_optimistic(selected, Value::from(0));
+    let idle = selected(model, 0);
     let empty = hc_core::shadow::Shadow::new();
 
     for (label, context) in [
@@ -3072,53 +3090,53 @@ async fn start_is_refused_when_no_programme_is_selected() {
             hc_core::bridge::SetContext::new(model, &mapping).with_values(&idle),
         ),
     ] {
-        let recorder = RecordingTransport::new();
-        let mut writer = GuardedWriter::new(recorder.clone());
-        let verdict =
-            handle_set(&mut writer, &context, "_control/start_program/set", "PRESS").await;
+        let (verdict, _, sent) = press_start(&context, "true").await;
         assert!(
             matches!(verdict, Err(hc_core::bridge::SetError::NoProgramSelected)),
             "{label}: refused with NoProgramSelected, got {verdict:?}"
         );
-        assert_eq!(
-            recorder.count(),
-            0,
-            "{label}: nothing reaches the transport"
-        );
+        assert_eq!(sent, 0, "{label}: nothing reaches the transport");
     }
 }
 
 #[tokio::test]
-async fn start_is_refused_where_the_selection_is_the_start() {
-    // The broker subscription is not the gate: a start published by hand to a hob or an oven
-    // must be refused on the write path too, even with a programme selected.
+async fn the_hob_and_the_oven_start_through_their_selection() {
+    // Their `<activeProgram>` is read-only and their selection is the start, so the start control
+    // sends that: a direct `POST /ro/selectedProgram`.
     for fixture in ["hob-aes.zip", "oven-tls.zip"] {
         let profile = fixture_profile(fixture);
         let model = profile.model();
         let mapping = DeviceMapping::build(&device_id(), model, &Excludes::none());
         let program = *model.programs().keys().next().expect("programmes");
-        let mut values = hc_core::shadow::Shadow::new();
-        values.set_optimistic(
-            u64::from(uid_of_kind(model, hc_profile::EntityKind::SelectedProgram)),
-            Value::from(program),
-        );
-        let recorder = RecordingTransport::new();
-        let mut writer = GuardedWriter::new(recorder.clone());
-        let verdict = handle_set(
-            &mut writer,
-            &hc_core::bridge::SetContext::new(model, &mapping).with_values(&values),
-            "_control/start_program/set",
-            "PRESS",
-        )
-        .await;
-        assert!(
-            matches!(verdict, Err(hc_core::bridge::SetError::UnknownTopic(_))),
-            "{fixture}: refused as a control this appliance does not have, got {verdict:?}"
-        );
-        assert_eq!(
-            recorder.count(),
-            0,
-            "{fixture}: nothing reaches the transport"
-        );
+        let values = selected(model, program);
+        let context = hc_core::bridge::SetContext::new(model, &mapping).with_values(&values);
+
+        let (verdict, command, sent) = press_start(&context, "true").await;
+        verdict.unwrap_or_else(|error| panic!("{fixture}: the start is sent: {error}"));
+        assert_eq!(sent, 1, "{fixture}: exactly one frame");
+        let command = command.expect("recorded");
+        assert_eq!(command.resource, "/ro/selectedProgram", "{fixture}");
+        assert_eq!(command.target_uid, Some(program), "{fixture}");
     }
+}
+
+#[tokio::test]
+async fn an_active_program_set_starts_the_named_programme() {
+    // `…/BSH/Common/Root/ActiveProgram/set` exists where the appliance declares the pointer
+    // writable. A programme named there is started, not written to `/ro/values` as a feature.
+    let (profile, mapping, program) = dishwasher();
+    let model = profile.model();
+    let key = model
+        .program(program)
+        .and_then(|program| program.key.clone())
+        .expect("the programme is named");
+    let topic = entry_for(&mapping, "BSH.Common.Root.ActiveProgram")
+        .command_topic
+        .clone()
+        .expect("the dishwasher's activeProgram is writable");
+
+    let command = hc_core::bridge::build_write_command(model, &mapping, &topic, &key)
+        .expect("a declared programme is a start");
+    assert_eq!(command.resource, "/ro/activeProgram");
+    assert_eq!(command.target_uid, Some(program));
 }

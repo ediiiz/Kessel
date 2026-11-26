@@ -100,6 +100,9 @@
 
   const write = (target: string, request: WriteRequest): Promise<WriteOutcome> =>
     api.write(target, request);
+  /** The programme card's start: `value` carries the programme key it shows. */
+  const start = (target: string, request: WriteRequest): Promise<WriteOutcome> =>
+    api.startProgram(target, { program: request.value });
 
   $effect(() => {
     void load(slug);
@@ -216,7 +219,14 @@
         {/if}
 
         <div class="relative z-30 flex flex-col gap-7">
-          <ProgrammeCard {entities} {programs} index={2} />
+          <ProgrammeCard
+            {entities}
+            {programs}
+            {slug}
+            role={device?.role ?? ''}
+            start={device !== null && device.ever_writable ? start : undefined}
+            index={2}
+          />
 
           {#if device !== null && device.ever_writable}
             <SessionControl {api} />

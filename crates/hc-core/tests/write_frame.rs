@@ -19,7 +19,7 @@ mod common;
 
 use common::{RecordedWire, recording_write_path, seeded_session};
 use hc_core::bridge::{WriteFrameError, take_guarded_session, to_outgoing};
-use hc_core::write::{DeviceRole, StartRequest, WriteCommand, start_command};
+use hc_core::write::{WriteCommand, start_command};
 use hc_proto::Version;
 use serde_json::json;
 
@@ -83,18 +83,14 @@ async fn write_command_serialises_through_to_outgoing() {
     );
 }
 
-/// The cooktop program start `start_command` produces, a `/ro/selectedProgram` write. The frame
-/// layer's behaviour is independent of the role.
+/// The hob program start `start_command` produces from the hob's own description, a
+/// `/ro/selectedProgram` write.
 fn program_start() -> WriteCommand {
-    start_command(
-        &DeviceRole::Cooktop,
-        &StartRequest {
-            program_uid: 0x1234,
-            start_option_uid: 0,
-            relative_time: 0,
-        },
-    )
-    .expect("the program-start command is constructible")
+    let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../hc-profile/tests/fixtures/hob-aes.zip");
+    let profile = hc_profile::Profile::from_zip_bytes(&std::fs::read(path).expect("fixture"))
+        .expect("the fixture parses");
+    start_command(profile.model(), 0x1234, Vec::new())
 }
 
 /// A program start reaches the wire as a program body (`program` before `options`), through

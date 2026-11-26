@@ -54,8 +54,7 @@ pub use mapping::{
 pub use mqtt::{LastWill, MqttClient, MqttError, RumqttcClient};
 pub use shadow::{Origin, Shadow, ShadowEntry};
 pub use write::{
-    GuardedWriter, StartError, StartRequest, WriteCommand, WriteError, WriteTransport,
-    check_access, start_command,
+    GuardedWriter, WriteCommand, WriteError, WriteTransport, check_access, start_command,
 };
 
 /// The crate's own name, as it appears in `[workspace.members]`. The server prints it in its

@@ -1,18 +1,37 @@
 <script lang="ts">
   /**
-   * The running or selected programme, its time remaining and its progress. Read-only: Kessel shows
-   * the programme, it does not start one.
+   * The running or selected programme, its time remaining and its progress, and a Start control for
+   * the selected programme when nothing is running.
+   *
+   * Start names the selected programme, so what is sent is what is shown, and goes through the same
+   * {@link WriteGate} as every other write: confirmed first on an appliance that produces heat, sent at
+   * once elsewhere. Kessel does not judge whether the appliance should start; its answer is the toast.
+   * Without a `start` callback the card is read-only.
    */
   import type { EntityDescriptor, ProgramDescriptor } from '$lib/api-types';
-  import { Timer } from '$lib/icons';
+  import { Play, Timer } from '$lib/icons';
+  import { isHeating } from '$lib/appliance';
   import { displayValue, progressPercent } from '$lib/value';
   import { enter, flash } from '$lib/motion';
+  import { WriteGate, type Writer } from '$lib/write.svelte';
+  import WriteConfirmation from './WriteConfirmation.svelte';
 
   const {
     entities,
     programs,
+    slug = '',
+    role = '',
+    start,
     index = 0,
-  }: { entities: EntityDescriptor[]; programs: ProgramDescriptor[]; index?: number } = $props();
+  }: {
+    entities: EntityDescriptor[];
+    programs: ProgramDescriptor[];
+    slug?: string;
+    role?: string;
+    /** Sends a programme start; `value` carries the programme key. Absent makes the card read-only. */
+    start?: Writer;
+    index?: number;
+  } = $props();
 
   function find(suffix: string): EntityDescriptor | undefined {
     return entities.find((entity) => entity.feature_key?.endsWith(suffix) === true);
@@ -35,6 +54,31 @@
   const time = $derived(
     remaining === undefined ? null : displayValue(remaining.feature_key, remaining.value),
   );
+
+  /** The selected programme, when the appliance reports one this profile names. */
+  const startable = $derived(
+    running || selected === undefined
+      ? undefined
+      : programs.find(
+          (program) => String(program.uid) === selected.value && program.feature_key !== null,
+        ),
+  );
+
+  const gate = new WriteGate();
+  const confirmFirst = $derived(isHeating(role));
+
+  function startSelected(program: ProgramDescriptor, send: Writer): void {
+    const proposed = {
+      featureKey: active?.feature_key ?? 'BSH.Common.Root.ActiveProgram',
+      value: program.feature_key ?? '',
+      label: `Start ${program.label}`,
+    };
+    if (confirmFirst) {
+      gate.propose(proposed);
+    } else {
+      void gate.send(slug, send, proposed);
+    }
+  }
 </script>
 
 {#if programme !== undefined}
@@ -61,6 +105,22 @@
         </span>
       {/if}
     </div>
+
+    {#if start !== undefined && startable !== undefined}
+      {@const program = startable}
+      <button
+        type="button"
+        data-testid="programme-start"
+        disabled={gate.busy}
+        aria-busy={gate.sending !== null}
+        title={program.feature_key}
+        onclick={() => startSelected(program, start)}
+        class="press bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-11 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-semibold disabled:cursor-wait disabled:opacity-60"
+      >
+        <Play class="size-4" aria-hidden="true" />
+        {gate.sending === null ? `Start ${program.label}` : 'Starting…'}
+      </button>
+    {/if}
 
     {#if time !== null}
       <div class="flex items-end justify-between gap-3">
@@ -91,6 +151,10 @@
           style:width="{percent}%"
         ></div>
       </div>
+    {/if}
+
+    {#if start !== undefined && confirmFirst}
+      <WriteConfirmation {gate} {slug} {role} write={start} />
     {/if}
   </section>
 {/if}
