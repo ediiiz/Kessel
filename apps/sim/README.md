@@ -36,8 +36,10 @@ accepted or refused.
   NOTIFY `/ro/descriptionChange` flips a different option's `access` between `READWRITE` and
   `READ`, or its `available`. Access words are uppercase, as real appliances send them;
   `--access-words camel` sends the profile XML spelling instead.
-- `POST /ro/selectedProgram` (or `/ro/activeProgram`) with `[{"program":uid,"options":[…]}]`
-  selects and activates the program; `DELETE /ro/activeProgram` sets the active program to 0.
+- `POST /ro/activeProgram` with `[{"program":uid,"options":[…]}]` selects and starts the program.
+  `POST /ro/selectedProgram` with the same body only selects it when the profile declares a
+  writable `<activeProgram>` (the dishwasher), and also starts it otherwise (the cooktop and the
+  oven). `DELETE /ro/activeProgram` sets the active program to 0.
 
 ## Onboard it in Kessel
 

@@ -38,6 +38,10 @@ created under *Configuration* and *Diagnostic*, disabled; enable the ones you wa
 Entity ids are derived from the appliance's feature names and stay the same across restarts and
 updates, so they are safe to use in automations.
 
+Programmes: on a cooktop or an oven, choosing a programme starts it. On a dishwasher, choosing one
+only selects it, as on the appliance's own panel; press *Start programme* to start it, after
+setting a delayed start if you want one. *Stop programme* aborts whatever is running.
+
 If an appliance refuses a change — some options can only be changed while a programme is selected,
 for example — the entity shows the appliance's actual value again and the reason appears in the
 add-on log and the web UI.

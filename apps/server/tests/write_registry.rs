@@ -558,6 +558,83 @@ async fn a_dishwasher_set_message_reaches_the_wire_through_the_mqtt_route() {
     );
 }
 
+/// Pressing the stop button reaches the wire as `DELETE /ro/activeProgram`. The control topic
+/// backs no feature, so this pins that the route resolves it at all.
+#[tokio::test]
+async fn the_stop_button_reaches_the_wire_through_the_mqtt_route() {
+    let state = state_with("dishwasher", DeviceRole::Dishwasher, "dishwasher-tls.zip");
+    let (writer, wire) = installed_writer(ED_MSG_ID);
+    state.writers().install("dishwasher", writer);
+    let base = server::mqtt::MqttSettings::DEFAULT_BASE;
+    let topic = format!("{base}/dishwasher/{}", hc_core::bridge::STOP_PROGRAM_TOPIC);
+
+    let outcome =
+        server::mqtt::route_inbound_set(&state, base, "dishwasher", &topic, "PRESS").await;
+    assert!(
+        matches!(outcome, server::mqtt::SetRouting::Accepted),
+        "the stop control is routed and accepted: {outcome:?}"
+    );
+    let frames = wire.frames.lock().clone();
+    assert_eq!(frames.len(), 1, "exactly one frame");
+    let frame: serde_json::Value = serde_json::from_slice(&frames[0]).expect("plaintext JSON");
+    assert_eq!(frame["resource"], "/ro/activeProgram");
+    assert_eq!(frame["action"], "DELETE");
+}
+
+/// Pressing the dishwasher's start button posts the programme its shadow reports as selected to
+/// `/ro/activeProgram`; without a selection nothing leaves the process.
+#[tokio::test]
+async fn the_start_button_starts_the_selected_programme_through_the_mqtt_route() {
+    let state = state_with("dishwasher", DeviceRole::Dishwasher, "dishwasher-tls.zip");
+    let (writer, wire) = installed_writer(ED_MSG_ID);
+    state.writers().install("dishwasher", writer);
+    let entry = state.devices().entry("dishwasher").expect("registered");
+    let selected = entry
+        .model
+        .entities()
+        .values()
+        .find(|entity| entity.kind == hc_profile::EntityKind::SelectedProgram)
+        .expect("the dishwasher declares a selectedProgram")
+        .uid;
+    let program = *entry
+        .model
+        .programs()
+        .keys()
+        .next()
+        .expect("the dishwasher declares programmes");
+    let shadow = Arc::new(Mutex::new(hc_core::shadow::Shadow::new()));
+    state.shadows().install("dishwasher", Arc::clone(&shadow));
+    let base = server::mqtt::MqttSettings::DEFAULT_BASE;
+    let topic = format!("{base}/dishwasher/{}", hc_core::bridge::START_PROGRAM_TOPIC);
+
+    let outcome =
+        server::mqtt::route_inbound_set(&state, base, "dishwasher", &topic, "PRESS").await;
+    assert!(
+        matches!(outcome, server::mqtt::SetRouting::Refused(_)),
+        "with nothing selected the start is refused: {outcome:?}"
+    );
+    assert_eq!(wire.byte_count(), 0, "a refused start sends nothing");
+
+    shadow
+        .lock()
+        .set_optimistic(u64::from(selected), serde_json::Value::from(program));
+    let outcome =
+        server::mqtt::route_inbound_set(&state, base, "dishwasher", &topic, "PRESS").await;
+    assert!(
+        matches!(outcome, server::mqtt::SetRouting::Accepted),
+        "the start is accepted once a programme is selected: {outcome:?}"
+    );
+    let frames = wire.frames.lock().clone();
+    assert_eq!(frames.len(), 1, "exactly one frame");
+    let frame: serde_json::Value = serde_json::from_slice(&frames[0]).expect("plaintext JSON");
+    assert_eq!(frame["resource"], "/ro/activeProgram");
+    assert_eq!(frame["action"], "POST");
+    assert_eq!(
+        frame["data"][0]["program"],
+        serde_json::Value::from(program)
+    );
+}
+
 /// A set message for a device with no live session is refused, and nothing is queued.
 #[tokio::test]
 async fn a_set_message_for_a_disconnected_device_is_refused() {

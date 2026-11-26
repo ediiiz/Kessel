@@ -357,3 +357,33 @@ because the devices require it that way"
 (`reference/hcpy/HCDevice.py:303-306`). This is direct evidence that at least some appliance
 firmware parses JSON objects **positionally**, and it is the linchpin of the 403 analysis in
 [`handshake.md`](./handshake.md).
+
+## 6. Programmes: selecting versus starting
+
+Two resources take the same body, `[{"program":<uid>,"options":[{"uid":…,"value":…},…]}]`, with
+`program` before `options` and `uid` before `value` inside each option:
+
+- `POST /ro/selectedProgram` **selects** a programme
+  (`reference/homeconnect-websocket/src/homeconnect_websocket/entities.py:518-520`;
+  `reference/go-homeconnect2mqtt/internal/homeconnect/appliance.go:235-240`).
+- `POST /ro/activeProgram` **starts** one. homeconnect-websocket's `start()` notes that "select
+  might be required first" (`reference/homeconnect-websocket/src/homeconnect_websocket/entities.py:537-539`);
+  Go calls this the standard strategy for "most appliances"
+  (`reference/go-homeconnect2mqtt/internal/homeconnect/appliance.go:51`, `:261`). hcpy documents a
+  dishwasher start as `{"program":8196}`, and a start in ten minutes as
+  `{"program":8196,"options":[{"uid":558,"value":600}]}`, where uid 558 is
+  `BSH.Common.Option.StartInRelative` (`reference/hcpy/README.md:461-477`).
+- `DELETE /ro/activeProgram`, with no `data`, clears the active programme (§1, Actions).
+
+The exception is the hob, where Go posts the start straight to `/ro/selectedProgram`
+(`reference/go-homeconnect2mqtt/internal/homeconnect/appliance.go:53`). *(inference)* The
+descriptions agree with the split: the hob and the oven fixtures declare
+`<activeProgram access="read">` and the dishwasher fixture declares it `readWrite`, so Kessel starts
+with `/ro/activeProgram` exactly where `<activeProgram>` is writable and treats a selection as the
+start everywhere else.
+
+**Unknown:**
+
+- whether every appliance with a writable `<activeProgram>` needs a prior selection;
+- which options an appliance insists on in the start body;
+- whether a `<program execution="selectOnly">` refuses a start. No reference gates a start on it.

@@ -1037,70 +1037,118 @@ fn runs_programmes(mapping: &DeviceMapping) -> bool {
     })
 }
 
-/// The device-relative `…/set` topics of the synthetic controls this appliance gets.
+/// Whether this appliance starts a programme with `POST /ro/activeProgram`: it declares a writable
+/// `<activeProgram>` and at least one programme to select.
 ///
-/// The subscription counterpart of the synthetic control configs, derived from the same predicate
-/// so the two cannot disagree.
-#[must_use]
-pub fn synthetic_control_topics(mapping: &DeviceMapping) -> Vec<&'static str> {
-    if runs_programmes(mapping) {
-        vec![crate::bridge::STOP_PROGRAM_TOPIC]
-    } else {
-        Vec::new()
-    }
+/// The cooktop and the oven declare `<activeProgram access="read">`; their programme `select`
+/// already starts, so they get no second way to switch on a heat source. On the dishwasher the
+/// `select` only selects, and without this control nothing would start it. "Writable" is the
+/// mapping's own test, so `access="none"` counts, as it does for every other control. [`crate::bridge::handle_set`]
+/// applies the same predicate, so a start published by hand cannot reach a hob or an oven either.
+pub(crate) fn starts_from_active_program(mapping: &DeviceMapping) -> bool {
+    let writable_active = mapping.entries().iter().any(|entry| {
+        matches!(entry.kind, hc_profile::EntityKind::ActiveProgram) && entry.command_topic.is_some()
+    });
+    let selectable = mapping.entries().iter().any(|entry| {
+        matches!(entry.kind, hc_profile::EntityKind::SelectedProgram)
+            && entry.command_topic.is_some()
+            && !entry.options.is_empty()
+    });
+    writable_active && selectable
 }
 
-/// The synthetic controls: configs that back no feature. Currently only "Stop programme".
+/// One synthetic programme control: its topic, config id, name and icon.
+struct ProgrammeControl {
+    topic: &'static str,
+    id: &'static str,
+    name: &'static str,
+    icon: &'static str,
+}
+
+const STOP: ProgrammeControl = ProgrammeControl {
+    topic: crate::bridge::STOP_PROGRAM_TOPIC,
+    id: "stop_program",
+    name: "Stop programme",
+    icon: "mdi:stop-circle-outline",
+};
+
+const START: ProgrammeControl = ProgrammeControl {
+    topic: crate::bridge::START_PROGRAM_TOPIC,
+    id: "start_program",
+    name: "Start programme",
+    icon: "mdi:play-circle-outline",
+};
+
+/// The synthetic controls this appliance gets, in announcement order.
 ///
-/// There is no start button: the programme `select` already starts a programme on selection, and a
-/// second path to starting an appliance (a cooktop included) is not wanted. Stop has no feature to
-/// write to (`DELETE /ro/activeProgram`), so it is not a mapping entry.
+/// Stop has no feature to write to (`DELETE /ro/activeProgram`), and start reads the selection
+/// rather than writing a feature, so neither is a mapping entry.
+fn programme_controls(mapping: &DeviceMapping) -> Vec<&'static ProgrammeControl> {
+    let mut controls = Vec::new();
+    if starts_from_active_program(mapping) {
+        controls.push(&START);
+    }
+    if runs_programmes(mapping) {
+        controls.push(&STOP);
+    }
+    controls
+}
+
+/// The device-relative `…/set` topics of the synthetic controls this appliance gets.
+///
+/// The subscription counterpart of the synthetic control configs, derived from the same list so
+/// the two cannot disagree.
+#[must_use]
+pub fn synthetic_control_topics(mapping: &DeviceMapping) -> Vec<&'static str> {
+    programme_controls(mapping)
+        .into_iter()
+        .map(|control| control.topic)
+        .collect()
+}
+
+/// The synthetic controls: configs that back no feature.
 fn synthetic_controls(
     base: &str,
     device: &DeviceId,
     mapping: &DeviceMapping,
 ) -> Vec<DiscoveryConfig> {
-    if !runs_programmes(mapping) {
-        return Vec::new();
-    }
+    programme_controls(mapping)
+        .into_iter()
+        .map(|control| control_config(base, device, control))
+        .collect()
+}
+
+/// The HA `button` config for one synthetic control.
+fn control_config(base: &str, device: &DeviceId, control: &ProgrammeControl) -> DiscoveryConfig {
     let slug = device.as_str();
     let mut payload = Map::new();
     payload.insert("platform".to_owned(), Value::String("button".to_owned()));
     payload.insert(
         "unique_id".to_owned(),
-        Value::String(format!("{slug}-_control.stop_program")),
+        Value::String(format!("{slug}-_control.{}", control.id)),
     );
-    payload.insert(
-        "name".to_owned(),
-        Value::String("Stop programme".to_owned()),
-    );
+    payload.insert("name".to_owned(), Value::String(control.name.to_owned()));
     payload.insert(
         "default_entity_id".to_owned(),
         Value::String(format!(
             "button.{}",
-            slugify(&format!("{slug}_stop_program"))
+            slugify(&format!("{slug}_{}", control.id))
         )),
     );
-    payload.insert(
-        "icon".to_owned(),
-        Value::String("mdi:stop-circle-outline".to_owned()),
-    );
+    payload.insert("icon".to_owned(), Value::String(control.icon.to_owned()));
     payload.insert(
         "command_topic".to_owned(),
-        Value::String(format!(
-            "{base}/{slug}/{}",
-            crate::bridge::STOP_PROGRAM_TOPIC
-        )),
+        Value::String(format!("{base}/{slug}/{}", control.topic)),
     );
-    // `stop_program_command` ignores the payload.
+    // Both controls ignore the payload: a button press has only one meaning.
     payload.insert(
         "payload_press".to_owned(),
         Value::String(BOOLEAN_ON.to_owned()),
     );
-    // No `entity_category` or `enabled_by_default`: stop must always be visible.
-    vec![DiscoveryConfig {
-        id: "stop_program".to_owned(),
+    // No `entity_category` or `enabled_by_default`: starting and stopping must always be visible.
+    DiscoveryConfig {
+        id: control.id.to_owned(),
         component: "button",
         payload: Value::Object(payload),
-    }]
+    }
 }

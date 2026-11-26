@@ -344,10 +344,11 @@ impl OutgoingMessage {
         }
     }
 
-    /// A `POST /ro/selectedProgram` program start.
+    /// A `POST /ro/selectedProgram` program selection.
     ///
-    /// Infallible: an empty `options` list is legal and emits `"options":[]`. This frame can start
-    /// a cooktop or an oven.
+    /// Infallible: an empty `options` list is legal and emits `"options":[]`. On a cooktop or an
+    /// oven this frame starts the programme; elsewhere it only selects it (see
+    /// [`Self::program_activate`]).
     #[must_use]
     pub fn program_start(
         s_id: u64,
@@ -364,6 +365,22 @@ impl OutgoingMessage {
             action: Action::Post,
             body: Body::Program { program, options },
             code: None,
+        }
+    }
+
+    /// A `POST /ro/activeProgram` program start: the same body as [`Self::program_start`], on the
+    /// resource that starts a programme on appliances whose selection only selects.
+    #[must_use]
+    pub fn program_activate(
+        s_id: u64,
+        msg_id: u64,
+        version: Version,
+        program: u32,
+        options: Vec<WriteItem>,
+    ) -> Self {
+        Self {
+            resource: "/ro/activeProgram".to_owned(),
+            ..Self::program_start(s_id, msg_id, version, program, options)
         }
     }
 
